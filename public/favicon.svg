@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="pig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a05e34"/>
+      <stop offset="1" stop-color="#6e3c1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#15181d"/>
+  <g transform="rotate(-20 32 32)">
+    <!-- ball body -->
+    <path d="M8 32 Q32 8 56 32 Q32 56 8 32 Z" fill="url(#pig)" stroke="#4f2c17" stroke-width="1.6"/>
+    <!-- end stripes -->
+    <path d="M16.5 24.5 Q19 32 16.5 39.5" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M47.5 24.5 Q45 32 47.5 39.5" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <!-- center seam lace -->
+    <line x1="32" y1="24" x2="32" y2="40" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+    <!-- cross laces -->
+    <g stroke="#ffffff" stroke-width="2.4" stroke-linecap="round">
+      <line x1="28.5" y1="27" x2="35.5" y2="27"/>
+      <line x1="28.5" y1="30.7" x2="35.5" y2="30.7"/>
+      <line x1="28.5" y1="34.4" x2="35.5" y2="34.4"/>
+      <line x1="28.5" y1="38.1" x2="35.5" y2="38.1"/>
+    </g>
+  </g>
+</svg>
