@@ -111,6 +111,7 @@ export class SeasonTower extends React.Component<Props, State> {
       }
     }, 60)
     requestAnimationFrame(() => this._measure())
+    window.addEventListener('keydown', this.onKey)
   }
 
   season() { const s = this.state.seasonSel || this.props.season || '2025'; return (s === '2024' || s === '2026') ? s : '2025' }
@@ -118,7 +119,7 @@ export class SeasonTower extends React.Component<Props, State> {
   maxWeek() { const s = this.season(); return s === '2026' ? 18 : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
   defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
-  componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer) }
+  componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
 
   hashStr(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
   mulberry32(a: number) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
@@ -162,6 +163,22 @@ export class SeasonTower extends React.Component<Props, State> {
       const n = Math.min(mx, (this.state.throughWeek || 0) + 1); this.buildThrough(n)
       if (n >= mx) { clearInterval(this._timer); this._timer = null; this.setState({ playing: false }) }
     }, 950)
+  }
+  // Manual one-week step (‹ / › buttons and ← / → keys). Stops playback first.
+  stepWeek(delta: number) {
+    if (this._timer) { clearInterval(this._timer); this._timer = null; this.setState({ playing: false }) }
+    const cur = this.state.throughWeek == null ? this.defaultWeek() : this.state.throughWeek
+    this.buildThrough(cur + delta) // buildThrough clamps to [0, maxWeek]
+  }
+  onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    // Don't hijack arrows while typing in a field or while a modal is open.
+    const t = e.target as HTMLElement | null
+    const tag = t && t.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return
+    if (this.state.pop || this.state.teamPop) return
+    e.preventDefault()
+    this.stepWeek(e.key === 'ArrowRight' ? 1 : -1)
   }
 
   getSnapshotBeforeUpdate() {
@@ -362,6 +379,8 @@ export class SeasonTower extends React.Component<Props, State> {
       grpLeague: () => this.setState({ groupBy: 'league' }), grpConf: () => this.setState({ groupBy: 'conf' }), grpDiv: () => this.setState({ groupBy: 'div' }),
       rankPct: () => this.setState({ rankBy: 'pct' }), rankWins: () => this.setState({ rankBy: 'wins' }),
       onReset: () => this.reset(), onPlay: () => this.togglePlay(),
+      onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
+      stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
       throughWeek: tw, sliderMax: mx, playLabel: S.playing ? '❘❘' : '▶',
       weekLabel: tw === 0 ? 'Through: —' : (tw >= mx ? 'Full season' : ('Through Wk ' + tw)),
@@ -622,6 +641,7 @@ export class SeasonTower extends React.Component<Props, State> {
   render() {
     const v = this.renderVals()
     const mStop = (e: React.MouseEvent) => e.stopPropagation()
+    const stepBtn = (disabled: boolean): React.CSSProperties => ({ width: '20px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#22262d', fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.28 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit' })
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F5F6F4' }}>
 
@@ -649,7 +669,11 @@ export class SeasonTower extends React.Component<Props, State> {
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '5px 11px 5px 9px', border: '1px solid #D7DAE0', borderRadius: '8px', background: '#fff' }}>
-              <button onClick={v.onPlay} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #15181d', background: '#15181d', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{v.playLabel}</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button onClick={v.onStepBack} disabled={v.stepBackDisabled} title="Previous week (←)" aria-label="Previous week" style={stepBtn(v.stepBackDisabled)}>‹</button>
+                <button onClick={v.onPlay} title="Play / pause" aria-label="Play / pause" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #15181d', background: '#15181d', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{v.playLabel}</button>
+                <button onClick={v.onStepFwd} disabled={v.stepFwdDisabled} title="Next week (→)" aria-label="Next week" style={stepBtn(v.stepFwdDisabled)}>›</button>
+              </div>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#22262d', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: '78px' }}>{v.weekLabel}</span>
               <input type="range" min={0} max={v.sliderMax} step={1} value={v.throughWeek} onChange={v.onSlide} style={{ width: '150px', accentColor: '#15181d', cursor: 'pointer' }} />
             </div>

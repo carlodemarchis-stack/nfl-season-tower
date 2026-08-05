@@ -16,7 +16,16 @@ export function css(str: string | undefined | null): CSSProperties {
     const rawKey = decl.slice(0, i).trim()
     const value = decl.slice(i + 1).trim()
     if (!rawKey || value === '') continue
-    out[toCamel(rawKey)] = value
+    const key = toCamel(rawKey)
+    if (key === 'border') {
+      // Several prototype styles set `border` and then override one side
+      // (e.g. `border:1px solid …;border-top:3px solid …`). React warns and may drop the
+      // longhand when a shorthand and longhand coexist on re-render. Expand the shorthand
+      // into the four sides; declaration order then lets an explicit side override cleanly.
+      out.borderTop = value; out.borderRight = value; out.borderBottom = value; out.borderLeft = value
+    } else {
+      out[key] = value
+    }
   }
   return out as CSSProperties
 }
