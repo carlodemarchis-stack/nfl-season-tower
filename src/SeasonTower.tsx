@@ -74,6 +74,7 @@ export class SeasonTower extends React.Component<Props, State> {
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, seed: 20260913, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
     rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false,
+    groupBy: 'div', rankBy: 'wins',
   }
 
   componentDidMount() {
