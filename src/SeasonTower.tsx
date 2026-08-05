@@ -520,20 +520,24 @@ export class SeasonTower extends React.Component<Props, State> {
         if (pendCeiling && pendC.length) {
           const last = pendC[pendC.length - 1]; last.style = last.style.replace('margin-bottom:1px;', 'margin-bottom:auto;')
         }
-        const tieC = [...e.ties].sort((a, b) => b.w - a.w).map(g => mkCell(t, prim, txt, g, 'tie'))
-        const winC = [...e.wins].sort((a, b) => b.w - a.w).map(g => mkCell(t, prim, txt, g, 'win'))
-        z1 = [...pendC, ...tieC, ...winC]
+        // Ties sit above the line together with the wins, but ordered by their real week so
+        // each tie lands in its calendar slot among the wins (not clumped as a separate block).
+        const playedAbove = [...e.wins.map((g: any) => ({ g, ty: 'win' })), ...e.ties.map((g: any) => ({ g, ty: 'tie' }))]
+          .sort((a: any, b: any) => b.g.w - a.g.w).map((x: any) => mkCell(t, prim, txt, x.g, x.ty))
+        z1 = [...pendC, ...playedAbove]
         z2 = [...e.losses].sort((a, b) => a.w - b.w).map(g => mkCell(t, prim, txt, g, 'loss'))
       } else {
         z1 = [...e.losses].sort((a, b) => a.w - b.w).map(g => mkCell(t, prim, txt, g, 'loss'))
-        const winC = [...e.wins].sort((a, b) => a.w - b.w).map(g => mkCell(t, prim, txt, g, 'win'))
-        const tieC = [...e.ties].sort((a, b) => a.w - b.w).map(g => mkCell(t, prim, txt, g, 'tie'))
+        // Wins + ties share the right side, ordered by real week so a tie sits in its
+        // calendar slot among the wins rather than clumped after them.
+        const playedRight = [...e.wins.map((g: any) => ({ g, ty: 'win' })), ...e.ties.map((g: any) => ({ g, ty: 'tie' }))]
+          .sort((a: any, b: any) => a.g.w - b.g.w).map((x: any) => mkCell(t, prim, txt, x.g, x.ty))
         const pendItemsH = e.pend.map((g: any) => ({ g, ty: 'pend' })); if (e.bye) pendItemsH.push({ g: e.bye, ty: 'bye' })
         const pendC = pendItemsH.sort((a: any, b: any) => a.g.w - b.g.w).map((x: any) => mkCell(t, prim, txt, x.g, x.ty))
         if (pendCeiling && pendC.length) {
           const first = pendC[0]; first.style = 'margin-left:auto;' + first.style
         }
-        z2 = [...winC, ...tieC, ...pendC]
+        z2 = [...playedRight, ...pendC]
       }
       const recordStr = e.Ti ? `${e.W}-${e.L}-${e.Ti}` : `${e.W}-${e.L}`
       let colStyle: string, z1Style: string, z2Style: string, divStyle: string, labelStyle: string, rankStyle: string, abbrStyle: string, recStyle: string
