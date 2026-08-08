@@ -288,7 +288,7 @@ ranked.forEach((abbr,idx)=>{
   card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`
   card.style.color=I
   card.innerHTML=`<div class="glow"></div>
-    <img class="logo-bg" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.remove()">
+    <img class="logo-bg" style="filter:${I==='#ffffff'?'brightness(0) invert(1)':'brightness(0)'};opacity:${I==='#ffffff'?.14:.09}" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.remove()">
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
@@ -311,6 +311,14 @@ ranked.forEach((abbr,idx)=>{
 const N=ranked.length
 const $=id=>document.getElementById(id)
 let idx=0, playing=false, timer=null
+// Deep-link the current card via the URL hash (#DEN or #18) so reload / share reopens it.
+function idxFromHash(){
+  const raw=decodeURIComponent((location.hash||'').replace(/^#/,'')).trim()
+  if(!raw) return 0
+  const ti=ranked.indexOf(raw.toUpperCase()); if(ti>=0) return ti
+  const n=parseInt(raw,10); if(!isNaN(n)&&n>=1&&n<=N) return n-1
+  return 0
+}
 function render(){
   track.style.transform=`translateX(${-idx*100}%)`
   const abbr=ranked[idx], t=TEAMS[abbr]
@@ -319,6 +327,7 @@ function render(){
   $('pdot').style.background=t.primary
   $('prev').disabled=idx===0; $('next').disabled=idx===N-1
   ;[...menu.children].forEach((c,i)=>c.classList.toggle('cur',i===idx))
+  const want='#'+abbr; if(location.hash!==want) history.replaceState(null,'',want)
 }
 function go(i){ idx=Math.max(0,Math.min(N-1,i)); render() }
 function setPlay(p){ playing=p; $('play').textContent=p?'⏸':'▶'; clearInterval(timer)
@@ -358,6 +367,10 @@ let x0=null
 addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true})
 addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50){setPlay(false);go(idx+(dx<0?1:-1))} x0=null },{passive:true})
 
+// back/forward or a manually edited hash re-syncs the deck
+addEventListener('hashchange',()=>{ const i=idxFromHash(); if(i!==idx){ setPlay(false); idx=i; render() } })
+
+idx=idxFromHash()
 render()
 </script>
 </body>
