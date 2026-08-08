@@ -19,8 +19,13 @@
   .card{position:relative;width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;}
   .card .glow{position:absolute;inset:0;z-index:0;background:radial-gradient(120% 75% at 12% 0%,rgba(255,255,255,.16),transparent 52%);pointer-events:none;}
   /* official team logo — very subtle watermark bleeding off the right edge */
-  .logo-bg{position:absolute;z-index:0;right:-3%;top:50%;transform:translateY(-50%);height:82%;max-width:50%;object-fit:contain;
-       opacity:.11;pointer-events:none;-webkit-mask-image:linear-gradient(to left,#000 55%,transparent);mask-image:linear-gradient(to left,#000 55%,transparent);}
+  .logo-bg{position:absolute;z-index:0;right:-3%;top:50%;transform:translateY(-50%);height:82%;width:50%;pointer-events:none;
+       display:flex;align-items:center;justify-content:center;
+       -webkit-mask-image:linear-gradient(to left,#000 52%,transparent);mask-image:linear-gradient(to left,#000 52%,transparent);}
+  /* soft contrasting plate so the logo reads even when its colours match the card */
+  .logo-bg::before{content:'';position:absolute;height:98%;aspect-ratio:1;border-radius:50%;
+       background:radial-gradient(circle at 50% 48%, rgba(var(--tone),.22), rgba(var(--tone),.08) 52%, transparent 70%);}
+  .logo-bg img{position:relative;height:100%;max-width:100%;object-fit:contain;opacity:.18;}
   /* identity top bar */
   .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:16px;padding:16px 32px 13px;border-bottom:1px solid rgba(128,128,128,.22);}
   .tb-tile{width:58px;height:58px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(0,0,0,.28);padding:7px;overflow:hidden;}
@@ -38,7 +43,7 @@
   .tb-rec b{font-size:27px;}
   .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
   /* body grid: matches | roster | season panel */
-  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(238px,286px) minmax(330px,430px) minmax(190px,222px);gap:34px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(210px,250px) minmax(440px,600px) minmax(196px,238px);gap:30px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
   .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
   .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
   /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
@@ -61,16 +66,10 @@
   .pl .pic{width:21px;height:21px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
   .pl .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.1px;}
   .pl .pos{font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;}
-  .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px 12px;}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px 10px;}
   .rna{opacity:.5;font-size:12px;padding:12px 6px;}
   /* season panel (right) */
   .rpanel{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;overflow:hidden;}
-  .donutwrap{display:flex;flex-direction:column;align-items:center;gap:9px;}
-  .donut{width:132px;height:132px;}
-  .donut .dt-rec{font-weight:900;font-size:26px;fill:currentColor;font-variant-numeric:tabular-nums;}
-  .donut .dt-lbl{font-weight:800;font-size:8px;letter-spacing:1.6px;fill:currentColor;opacity:.55;}
-  .leg{display:flex;gap:14px;font-weight:800;font-size:11.5px;font-variant-numeric:tabular-nums;}
-  .leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
   .stats{display:flex;flex-direction:column;gap:1px;}
   .stats .ph{padding:0 4px 4px;}
   .srow{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:700;}
@@ -78,11 +77,16 @@
   .srow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
   /* margin-by-game column chart: wins up / losses down, bar in opponent colour */
   .mchart{display:flex;flex-direction:column;gap:8px;}
-  .cbars{position:relative;display:flex;align-items:stretch;gap:2px;height:116px;padding:0 1px;}
-  .cbar{position:relative;flex:1 1 0;min-width:0;}
-  .cbar .up{position:absolute;left:0;right:0;bottom:50%;border-radius:2px 2px 0 0;}
-  .cbar .dn{position:absolute;left:0;right:0;top:50%;border-radius:0 0 2px 2px;}
-  .mzero{position:absolute;left:0;right:0;top:50%;height:0;border-top:1px dashed rgba(128,128,128,.55);pointer-events:none;}
+  .cbars{position:relative;display:flex;align-items:stretch;gap:3px;height:250px;}
+  .cbar{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  .cbar .up{flex:1;display:flex;align-items:flex-end;justify-content:center;}
+  .cbar .dn{flex:1;display:flex;align-items:flex-start;justify-content:center;}
+  .cbar .up i,.cbar .dn i{display:block;width:100%;}
+  .cbar .up i{border-radius:2px 2px 0 0;}
+  .cbar .dn i{border-radius:0 0 2px 2px;}
+  .cbar .lbl{height:30px;display:flex;align-items:center;justify-content:center;}
+  .cbar .lbl b{writing-mode:vertical-rl;transform:rotate(180deg);font-size:8px;font-weight:800;letter-spacing:.4px;opacity:.78;line-height:1;font-variant-numeric:tabular-nums;}
+  .mband{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:30px;border-top:1px dashed rgba(128,128,128,.5);border-bottom:1px dashed rgba(128,128,128,.5);pointer-events:none;z-index:0;}
   /* bottom control bar (teal takeover) */
   .bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;
        background:rgba(20,22,26,.92);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:9px 12px;
@@ -260,36 +264,26 @@ function rosterCol(abbr,I,soft){
   })
   return `<div class="roster">${h}</div>`
 }
-function donut(s){
-  const tot=s.played||1, C=2*Math.PI*52
-  let off=0, c=''
-  ;[[s.W,TEAL],[s.T,AMBER],[s.L,RED]].forEach(([v,col])=>{ if(!v)return; const f=v/tot
-    c+=`<circle cx="66" cy="66" r="52" fill="none" stroke="${col}" stroke-width="15" stroke-dasharray="${f*C} ${C}" stroke-dashoffset="${-off*C}"/>`; off+=f })
-  return `<svg class="donut" viewBox="0 0 132 132"><g transform="rotate(-90 66 66)">${c}</g><text x="66" y="64" text-anchor="middle" class="dt-rec">${rec(s)}</text><text x="66" y="80" text-anchor="middle" class="dt-lbl">RECORD</text></svg>`
-}
 // Column chart of point differential per played game (calendar order): wins positive/up,
-// losses negative/down, each bar in the opponent's colour.
+// losses negative/down, each bar in the opponent's colour, opponent code on the axis.
 function marginChart(abbr,I,soft){
   const games=TEAMS[abbr].games.filter(g=>resOf(abbr,g.w)).sort((a,b)=>a.w-b.w)
   const rows=games.map(g=>{ const r=resOf(abbr,g.w); return {g,r,diff:r.us-r.them} })
-  const max=Math.max(1,...rows.map(d=>Math.abs(d.diff))), H=54
+  const max=Math.max(1,...rows.map(d=>Math.abs(d.diff))), H=95
   const bars=rows.map(({g,r,diff})=>{
     const op=(TEAMS[g.opp]&&TEAMS[g.opp].primary)||'#8A8F98'
-    const h=Math.max(2,Math.round(Math.abs(diff)/max*H))
-    const seg = diff>=0
-      ? `<span class="up" style="height:${diff===0?2:h}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.14)"></span>`
-      : `<span class="dn" style="height:${h}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.14)"></span>`
-    return `<span class="cbar" title="Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.us}-${r.them} (${diff>=0?'+':''}${diff})">${seg}</span>`
+    const h=Math.max(3,Math.round(Math.abs(diff)/max*H))
+    const ring=`box-shadow:0 0 0 1px rgba(${soft},.14)`
+    const up = diff>=0 ? `<i style="height:${diff===0?3:h}px;background:${op};${ring}"></i>` : ''
+    const dn = diff<0  ? `<i style="height:${h}px;background:${op};${ring}"></i>` : ''
+    return `<span class="cbar" title="Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.us}-${r.them} (${diff>=0?'+':''}${diff})"><span class="up">${up}</span><span class="lbl"><b style="color:${I}">${g.opp}</b></span><span class="dn">${dn}</span></span>`
   }).join('')
-  return `<div class="mchart"><div class="ph">Margin by game · wins ↑ · losses ↓ · opponent colour</div><div class="cbars">${bars}<div class="mzero"></div></div></div>`
+  return `<div class="mchart"><div class="ph">Margin by game · wins ↑ · losses ↓ · opponent colour</div><div class="cbars"><div class="mband"></div>${bars}</div></div>`
 }
 function panel(abbr,I,soft){
   const s=stat[abbr]
   const srow=(l,v)=>`<div class="srow" style="background:rgba(${soft},.08)"><span class="sl">${l}</span><span class="sv">${v}</span></div>`
   return `<div class="rpanel">
-    <div class="donutwrap">${donut(s)}
-      <div class="leg"><span><i style="background:${TEAL}"></i>${s.W} W</span><span><i style="background:${RED}"></i>${s.L} L</span>${s.T?`<span><i style="background:${AMBER}"></i>${s.T} T</span>`:''}</div>
-    </div>
     <div class="stats"><div class="ph">Season splits</div>
       ${srow('Home',rec(s.home))}${srow('Away',rec(s.away))}${srow('Division',rec(s.div))}
       ${srow('Points for',s.PF)}${srow('Points against',s.PA)}${srow('Point diff',(s.diff>=0?'+':'')+s.diff)}
@@ -312,7 +306,7 @@ ranked.forEach((abbr,idx)=>{
   card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`
   card.style.color=I
   card.innerHTML=`<div class="glow"></div>
-    <img class="logo-bg" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.remove()">
+    <div class="logo-bg" style="--tone:${I==='#ffffff'?'255,255,255':'18,20,26'}"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.closest('.logo-bg').remove()"></div>
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
