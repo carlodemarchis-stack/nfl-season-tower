@@ -76,6 +76,13 @@
   .srow{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:700;}
   .srow .sl{opacity:.72;letter-spacing:.2px;}
   .srow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  /* margin-by-game column chart: wins up / losses down, bar in opponent colour */
+  .mchart{display:flex;flex-direction:column;gap:8px;}
+  .cbars{position:relative;display:flex;align-items:stretch;gap:2px;height:116px;padding:0 1px;}
+  .cbar{position:relative;flex:1 1 0;min-width:0;}
+  .cbar .up{position:absolute;left:0;right:0;bottom:50%;border-radius:2px 2px 0 0;}
+  .cbar .dn{position:absolute;left:0;right:0;top:50%;border-radius:0 0 2px 2px;}
+  .mzero{position:absolute;left:0;right:0;top:50%;height:0;border-top:1px dashed rgba(128,128,128,.55);pointer-events:none;}
   /* bottom control bar (teal takeover) */
   .bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;
        background:rgba(20,22,26,.92);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:9px 12px;
@@ -260,6 +267,22 @@ function donut(s){
     c+=`<circle cx="66" cy="66" r="52" fill="none" stroke="${col}" stroke-width="15" stroke-dasharray="${f*C} ${C}" stroke-dashoffset="${-off*C}"/>`; off+=f })
   return `<svg class="donut" viewBox="0 0 132 132"><g transform="rotate(-90 66 66)">${c}</g><text x="66" y="64" text-anchor="middle" class="dt-rec">${rec(s)}</text><text x="66" y="80" text-anchor="middle" class="dt-lbl">RECORD</text></svg>`
 }
+// Column chart of point differential per played game (calendar order): wins positive/up,
+// losses negative/down, each bar in the opponent's colour.
+function marginChart(abbr,I,soft){
+  const games=TEAMS[abbr].games.filter(g=>resOf(abbr,g.w)).sort((a,b)=>a.w-b.w)
+  const rows=games.map(g=>{ const r=resOf(abbr,g.w); return {g,r,diff:r.us-r.them} })
+  const max=Math.max(1,...rows.map(d=>Math.abs(d.diff))), H=54
+  const bars=rows.map(({g,r,diff})=>{
+    const op=(TEAMS[g.opp]&&TEAMS[g.opp].primary)||'#8A8F98'
+    const h=Math.max(2,Math.round(Math.abs(diff)/max*H))
+    const seg = diff>=0
+      ? `<span class="up" style="height:${diff===0?2:h}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.14)"></span>`
+      : `<span class="dn" style="height:${h}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.14)"></span>`
+    return `<span class="cbar" title="Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.us}-${r.them} (${diff>=0?'+':''}${diff})">${seg}</span>`
+  }).join('')
+  return `<div class="mchart"><div class="ph">Margin by game · wins ↑ · losses ↓ · opponent colour</div><div class="cbars">${bars}<div class="mzero"></div></div></div>`
+}
 function panel(abbr,I,soft){
   const s=stat[abbr]
   const srow=(l,v)=>`<div class="srow" style="background:rgba(${soft},.08)"><span class="sl">${l}</span><span class="sv">${v}</span></div>`
@@ -271,7 +294,8 @@ function panel(abbr,I,soft){
       ${srow('Home',rec(s.home))}${srow('Away',rec(s.away))}${srow('Division',rec(s.div))}
       ${srow('Points for',s.PF)}${srow('Points against',s.PA)}${srow('Point diff',(s.diff>=0?'+':'')+s.diff)}
       ${srow('Longest win streak',s.streak)}
-    </div></div>`
+    </div>
+    ${marginChart(abbr,I,soft)}</div>`
 }
 
 /* ---- build the deck ---- */
@@ -288,7 +312,7 @@ ranked.forEach((abbr,idx)=>{
   card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`
   card.style.color=I
   card.innerHTML=`<div class="glow"></div>
-    <img class="logo-bg" style="filter:${I==='#ffffff'?'brightness(0) invert(1)':'brightness(0)'};opacity:${I==='#ffffff'?.14:.09}" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.remove()">
+    <img class="logo-bg" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="" onerror="this.remove()">
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
