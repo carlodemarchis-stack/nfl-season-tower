@@ -698,6 +698,7 @@ export class SeasonTower extends React.Component<Props, State> {
               </div>
             </div>
             <button onClick={v.onReset} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #D7DAE0', background: '#fff', color: '#727781', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Reset</button>
+            <a href="./film.html" title="Open the Season Film — one card per team" style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #0e8f86', background: '#0e8f86', color: '#fff', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}>Season Film ↗</a>
           </div>
         </div>
 

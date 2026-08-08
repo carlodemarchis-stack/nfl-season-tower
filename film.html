@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NFL · 2025 Season Film</title>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root{ --teal:#13b3a6; --teal-deep:#0e8f86; --teal-ink:#04211f; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;background:#0e0f12;color:#fff;font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  /* horizontal deck — full-bleed brand cards */
+  .stage{position:fixed;inset:0;overflow:hidden;}
+  .track{display:flex;height:100%;will-change:transform;transition:transform .52s cubic-bezier(.22,.61,.36,1);}
+  .slide{flex:0 0 100%;height:100%;}
+  .card{position:relative;width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;}
+  .card .glow{position:absolute;inset:0;z-index:0;background:radial-gradient(120% 75% at 12% 0%,rgba(255,255,255,.16),transparent 52%);pointer-events:none;}
+  /* identity top bar */
+  .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:16px;padding:16px 32px 13px;border-bottom:1px solid rgba(128,128,128,.22);}
+  .tb-tile{width:58px;height:58px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(0,0,0,.28);}
+  .tb-id{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .tb-name{font-weight:900;font-size:27px;line-height:1;letter-spacing:-.5px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+  .tb-zone{font-weight:800;font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;padding:4px 11px;border-radius:999px;white-space:nowrap;}
+  .tb-sub{font-weight:700;font-size:10px;opacity:.62;letter-spacing:.9px;text-transform:uppercase;}
+  .tb-spacer{flex:1;}
+  .tb-right{display:flex;align-items:center;gap:24px;flex:0 0 auto;}
+  .tb-rankbig{display:flex;align-items:baseline;gap:3px;font-weight:900;line-height:1;}
+  .tb-rankbig small{font-size:14px;opacity:.5;letter-spacing:.5px;}
+  .tb-rankbig b{font-size:52px;letter-spacing:-2.5px;}
+  .tb-rec{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.5;}
+  .tb-rec b{font-size:27px;}
+  .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
+  /* body grid: matches | roster | season panel */
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(270px,318px) minmax(250px,300px) minmax(196px,232px);gap:40px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
+  .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
+  /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
+  .tower{display:flex;flex-direction:column;justify-content:center;flex:1;min-height:0;--ch:clamp(15px,calc((100vh - 250px)/18),30px);}
+  .tw-z{display:flex;flex-direction:column;}
+  .tw-c{height:var(--ch);min-height:var(--ch);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;border-radius:5px;margin-bottom:2px;font-weight:800;overflow:hidden;box-sizing:border-box;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
+  .tw-c .tw-o{letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tw-c .tw-o .at{opacity:.62;font-weight:700;font-size:.82em;margin-right:1px;}
+  .tw-c .tw-s{font-variant-numeric:tabular-nums;font-size:.9em;white-space:nowrap;flex:0 0 auto;}
+  .tw-c .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
+  .tw-c.bye{border:1px dashed rgba(128,128,128,.5);opacity:.5;}
+  .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:5px 2px;}
+  /* roster (centre, scrollable) */
+  .roster{display:flex;flex-direction:column;gap:1px;min-width:0;max-height:100%;overflow-y:auto;padding-right:4px;}
+  .roster::-webkit-scrollbar{width:6px;} .roster::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:6px;}
+  .rhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 5px;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.62;position:sticky;top:0;}
+  .ph{font-weight:800;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;opacity:.6;padding:8px 6px 2px;}
+  .pl{display:grid;grid-template-columns:20px 21px 1fr auto;align-items:center;gap:8px;height:23px;padding:0 7px;border-radius:5px;font-size:11.5px;font-weight:700;}
+  .pl .num{font-variant-numeric:tabular-nums;opacity:.55;text-align:center;font-size:10px;}
+  .pl .pic{width:21px;height:21px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
+  .pl .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.1px;}
+  .pl .pos{font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;}
+  .rna{opacity:.5;font-size:12px;padding:12px 6px;}
+  /* season panel (right) */
+  .rpanel{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;overflow:hidden;}
+  .donutwrap{display:flex;flex-direction:column;align-items:center;gap:9px;}
+  .donut{width:132px;height:132px;}
+  .donut .dt-rec{font-weight:900;font-size:26px;fill:currentColor;font-variant-numeric:tabular-nums;}
+  .donut .dt-lbl{font-weight:800;font-size:8px;letter-spacing:1.6px;fill:currentColor;opacity:.55;}
+  .leg{display:flex;gap:14px;font-weight:800;font-size:11.5px;font-variant-numeric:tabular-nums;}
+  .leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+  .stats{display:flex;flex-direction:column;gap:1px;}
+  .stats .ph{padding:0 4px 4px;}
+  .srow{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:700;}
+  .srow .sl{opacity:.72;letter-spacing:.2px;}
+  .srow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  /* bottom control bar (teal takeover) */
+  .bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;
+       background:rgba(20,22,26,.92);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:9px 12px;
+       backdrop-filter:blur(10px);box-shadow:0 12px 34px rgba(0,0,0,.55);}
+  .bar button{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:none;border-radius:11px;
+       background:rgba(255,255,255,.06);color:#e7e9ec;cursor:pointer;font-size:16px;transition:background .15s,transform .1s;}
+  .bar button:hover{background:rgba(255,255,255,.13);}
+  .bar button:active{transform:scale(.94);}
+  .bar button:disabled{opacity:.3;cursor:default;}
+  .bar button.seasonbtn{width:auto;padding:0 14px;font-weight:800;font-size:13px;letter-spacing:.3px;font-variant-numeric:tabular-nums;color:var(--teal);}
+  .bar .play{width:48px;height:48px;background:var(--teal);color:var(--teal-ink);font-size:19px;}
+  .bar .play:hover{background:#18c6b8;}
+  .bar button.pos{display:flex;align-items:center;gap:9px;width:auto;min-width:214px;height:38px;padding:0 12px 0 14px;border-radius:11px;
+       background:rgba(255,255,255,.05);color:#e7e9ec;font-weight:800;font-size:13px;letter-spacing:.3px;cursor:pointer;}
+  .bar button.pos:hover{background:rgba(255,255,255,.12);}
+  .pos .crumb{opacity:.5;font-variant-numeric:tabular-nums;} .pos .nm{letter-spacing:.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pos .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.15);}
+  .pos .car{margin-left:auto;opacity:.5;font-size:9px;}
+  /* back-to-tower link (lives in the control bar) */
+  .bar .barlink{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;
+       background:rgba(255,255,255,.06);color:#e7e9ec;text-decoration:none;font-size:17px;font-weight:800;transition:background .15s;}
+  .bar .barlink:hover{background:rgba(255,255,255,.13);}
+  /* jump menu + keyboard popover */
+  .pop{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:70;
+       background:rgba(20,22,26,.97);border:1px solid rgba(255,255,255,.1);border-radius:14px;
+       box-shadow:0 16px 46px rgba(0,0,0,.6);backdrop-filter:blur(10px);display:none;}
+  .pop.open{display:block;}
+  .menu{grid-auto-flow:column;grid-template-rows:repeat(16,auto);grid-auto-columns:230px;gap:2px 8px;max-height:min(70vh,640px);overflow:auto;padding:8px;}
+  .pop.menu.open{display:grid;}
+  .mi{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:9px;cursor:pointer;font-weight:700;font-size:12.5px;color:#e7e9ec;}
+  .mi:hover{background:rgba(255,255,255,.08);}
+  .mi.cur{background:rgba(19,179,166,.22);}
+  .mi .r{width:20px;text-align:center;opacity:.55;font-variant-numeric:tabular-nums;font-size:12px;}
+  .mi .dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
+  .mi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mi .pts{opacity:.5;font-size:12px;font-variant-numeric:tabular-nums;}
+  .kbd{width:270px;padding:13px 16px;font-size:13px;}
+  .kbd h4{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;opacity:.55;margin-bottom:9px;}
+  .kbd .krow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;color:#cfd3d8;}
+  .kbd kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:5px;padding:1px 8px;font-family:inherit;font-weight:700;font-size:12px;color:#fff;}
+  @media(max-width:980px){
+    .grid{grid-template-columns:1fr 1fr;gap:16px;overflow-y:auto;align-items:start;padding-bottom:96px;}
+    .roster{max-height:none;overflow:visible;}
+    .rpanel{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;gap:20px;max-height:none;}
+    .donutwrap{flex:0 0 auto;} .stats{flex:1;min-width:220px;}
+    .back{display:none;}
+  }
+  @media(max-width:600px){ .grid{grid-template-columns:1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
+</style>
+</head>
+<body>
+  <div class="stage"><div class="track" id="track"></div></div>
+  <div class="bar">
+    <a class="barlink" href="./index.html" title="Back to Season Tower">⌂</a>
+    <button id="season" class="seasonbtn" title="Season" disabled>2025</button>
+    <button id="restart" title="Restart">↺</button>
+    <button id="prev" title="Previous (←)">‹</button>
+    <button class="play" id="play" title="Play / pause (space)">▶</button>
+    <button id="next" title="Next (→)">›</button>
+    <button class="pos" id="posbtn" title="Jump to team" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 32</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
+    <button id="fs" title="Fullscreen (F)">⛶</button>
+    <button id="kbdbtn" title="Keyboard shortcuts">⌨</button>
+  </div>
+  <div class="pop menu" id="menu" role="listbox"></div>
+  <div class="pop kbd" id="kbd">
+    <h4>Keyboard</h4>
+    <div class="krow"><span>Previous / Next</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
+    <div class="krow"><span>Play / Pause</span><kbd>Space</kbd></div>
+    <div class="krow"><span>Fullscreen</span><kbd>F</kbd></div>
+    <div class="krow"><span>Jump to team</span><kbd>click 1 / 32</kbd></div>
+    <div class="krow"><span>Close menu</span><kbd>Esc</kbd></div>
+  </div>
+
+<script type="module">
+import { TEAMS2025 as TEAMS, RESULTS2025 as RESULTS } from './src/data/schedule-2025.js'
+import { ROSTERS2025 as ROSTERS } from './src/data/rosters-2025.js'
+
+const TEAL='#13b3a6', RED='#ef4b52', AMBER='#d9a13a'
+
+/* ---- colour helpers ---- */
+const hx=h=>{h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+const to=([r,g,b])=>'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('')
+const mix=(a,b,t)=>{const A=hx(a),B=hx(b);return to([A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t])}
+const lum=h=>{const[r,g,b]=hx(h);return(r*299+g*587+b*114)/1000}
+const ink=h=>lum(h)>150?'#12151a':'#ffffff'
+const el=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+// encodeURIComponent leaves single quotes intact, which would break the single-quoted
+// onerror JS string — replace them so the data URI is safe to inline.
+const SIL="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='42' height='42'><rect width='42' height='42' rx='21' fill='#2a2d34'/><circle cx='21' cy='16' r='7' fill='#565c66'/><path d='M7 40c1.5-9 26.5-9 28 0z' fill='#565c66'/></svg>").replace(/'/g,"%27")
+
+const DIVNAME={N:'North',S:'South',E:'East',W:'West'}
+const POS_ORDER=['QB','RB','FB','WR','TE','T','OT','LT','RT','G','OG','LG','RG','C','OL','LS','DE','DT','NT','DL','EDGE','OLB','ILB','MLB','LB','CB','S','FS','SS','DB','K','P']
+const posRank=p=>{const i=POS_ORDER.indexOf(p);return i<0?99:i}
+const UNITS=[['offense','Offense'],['defense','Defense'],['specialTeam','Special Teams'],['injuredReserveOrOut','Reserve / Out']]
+
+const resOf=(abbr,w)=>RESULTS[abbr+':'+w]||null
+
+/* ---- standings ---- */
+const stat={}
+for(const abbr in TEAMS){
+  const t=TEAMS[abbr]
+  const st={W:0,L:0,T:0,PF:0,PA:0,played:0,home:{W:0,L:0,T:0},away:{W:0,L:0,T:0},div:{W:0,L:0,T:0}}
+  const games=[]
+  for(const g of t.games){ const r=resOf(abbr,g.w); if(!r) continue
+    st.played++; st.PF+=r.us; st.PA+=r.them
+    const k=r.res==='W'?'W':r.res==='L'?'L':'T'; st[k]++
+    st[g.ha==='H'?'home':'away'][k]++
+    const o=TEAMS[g.opp]; if(o&&o.conf===t.conf&&o.div===t.div) st.div[k]++
+    games.push({w:g.w,res:r.res})
+  }
+  games.sort((a,b)=>a.w-b.w)
+  let cur=0,mx=0; for(const p of games){ if(p.res==='W'){cur++;mx=Math.max(mx,cur)} else cur=0 }
+  st.streak=mx; st.pct=st.played?(st.W+0.5*st.T)/st.played:0; st.diff=st.PF-st.PA
+  stat[abbr]=st
+}
+const ranked=Object.keys(TEAMS).sort((a,b)=>{
+  const A=stat[a],B=stat[b]
+  if(B.pct!==A.pct) return B.pct-A.pct
+  if(B.W!==A.W) return B.W-A.W
+  if(A.L!==B.L) return A.L-B.L
+  return a<b?-1:1
+})
+
+/* ---- playoff seeds (4 division winners + 3 wild cards per conference) ---- */
+const seed={}
+for(const conf of ['AFC','NFC']){
+  const confTeams=ranked.filter(a=>TEAMS[a].conf===conf)            // already in record order
+  const seen={}, winners=[]
+  for(const a of confTeams){ const d=TEAMS[a].div; if(!seen[d]){ seen[d]=1; winners.push(a) } }  // best per division
+  winners.forEach((a,i)=>seed[a]={n:i+1,kind:'div'})
+  confTeams.filter(a=>!winners.includes(a)).slice(0,3).forEach((a,i)=>seed[a]={n:i+5,kind:'wc'})
+}
+const rec=s=>`${s.W}-${s.L}${s.T?'-'+s.T:''}`
+
+/* ---- card pieces ---- */
+function twScore(r){ const w=r.us>r.them
+  return `<b style="${w?'':'opacity:.6;font-weight:700'}">${r.us}</b><i>–</i><b style="${w?'opacity:.6;font-weight:700':''}">${r.them}</b>` }
+function towerCell(abbr,ty,g,I,soft){
+  if(ty==='bye') return `<div class="tw-c bye" style="color:${I}" title="Week ${g.w} · Bye"><span class="tw-o">BYE</span><span class="tw-s">Wk ${g.w}</span></div>`
+  const r=resOf(abbr,g.w), o=TEAMS[g.opp], op=(o&&o.primary)||'#8A8F98'
+  let bg,color,bd
+  if(ty==='win'){ bg=op; color=ink(op); bd='1px solid rgba(0,0,0,.18)' }
+  else if(ty==='loss'){ bg='#ffffff'; color=op; bd='1.6px solid '+RED }
+  else { bg=mix(op,'#ffffff',.18); color=ink(bg); bd='1px solid rgba(0,0,0,.12)' }
+  const at=g.ha==='A'?'<span class="at">@</span>':''
+  const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.res} ${r.us}-${r.them}`
+  return `<div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div>`
+}
+// One team's tower: wins+ties above the baseline (calendar order, latest on top),
+// losses below (earliest nearest the baseline), bye at the ceiling. Any week>18 game
+// (postseason) buckets naturally into wins/losses, so the slot is future-proof.
+function towerCol(abbr,I,soft){
+  const t=TEAMS[abbr]
+  const wins=[],losses=[],ties=[]; const wk=new Set()
+  for(const g of t.games){ if(g.w<=18) wk.add(g.w); const r=resOf(abbr,g.w); if(!r) continue
+    if(r.res==='W')wins.push(g); else if(r.res==='L')losses.push(g); else ties.push(g) }
+  let bye=null; for(let w=1;w<=18;w++){ if(!wk.has(w)){ bye=w; break } }
+  const above=[...wins.map(g=>['win',g]),...ties.map(g=>['tie',g])].sort((a,b)=>b[1].w-a[1].w)
+  const below=[...losses].sort((a,b)=>a.w-b.w)
+  let up = bye? towerCell(abbr,'bye',{w:bye},I,soft) : ''
+  above.forEach(([ty,g])=>up+=towerCell(abbr,ty,g,I,soft))
+  let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft))
+  return `<div class="tower"><div class="tw-z">${up}</div><div class="tw-base"></div><div class="tw-z">${dn}</div></div>`
+}
+function rosterCol(abbr,I,soft){
+  const R=ROSTERS[abbr]
+  let h=`<div class="rhead" style="background:transparent"><span>Roster</span><span>${R?R.count:0} players</span></div>`
+  if(!R) return `<div class="roster">${h}<div class="rna">Roster data unavailable for this season.</div></div>`
+  UNITS.forEach(([u,label])=>{
+    const ps=R.players.filter(p=>p.u===u).sort((a,b)=>posRank(a.pos)-posRank(b.pos)||(+(a.j||999))-(+(b.j||999)))
+    if(!ps.length) return
+    h+=`<div class="ph">${label} · ${ps.length}</div>`
+    ps.forEach(p=>{ h+=`<div class="pl" style="background:rgba(${soft},.07);color:${I}"><span class="num">${p.j||''}</span><img class="pic" loading="lazy" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" onerror="this.onerror=null;this.src='${SIL}'"><span class="pn">${p.n}</span><span class="pos" style="background:rgba(${soft},.14)">${p.pos}</span></div>` })
+  })
+  return `<div class="roster">${h}</div>`
+}
+function donut(s){
+  const tot=s.played||1, C=2*Math.PI*52
+  let off=0, c=''
+  ;[[s.W,TEAL],[s.T,AMBER],[s.L,RED]].forEach(([v,col])=>{ if(!v)return; const f=v/tot
+    c+=`<circle cx="66" cy="66" r="52" fill="none" stroke="${col}" stroke-width="15" stroke-dasharray="${f*C} ${C}" stroke-dashoffset="${-off*C}"/>`; off+=f })
+  return `<svg class="donut" viewBox="0 0 132 132"><g transform="rotate(-90 66 66)">${c}</g><text x="66" y="64" text-anchor="middle" class="dt-rec">${rec(s)}</text><text x="66" y="80" text-anchor="middle" class="dt-lbl">RECORD</text></svg>`
+}
+function panel(abbr,I,soft){
+  const s=stat[abbr]
+  const srow=(l,v)=>`<div class="srow" style="background:rgba(${soft},.08)"><span class="sl">${l}</span><span class="sv">${v}</span></div>`
+  return `<div class="rpanel">
+    <div class="donutwrap">${donut(s)}
+      <div class="leg"><span><i style="background:${TEAL}"></i>${s.W} W</span><span><i style="background:${RED}"></i>${s.L} L</span>${s.T?`<span><i style="background:${AMBER}"></i>${s.T} T</span>`:''}</div>
+    </div>
+    <div class="stats"><div class="ph">Season splits</div>
+      ${srow('Home',rec(s.home))}${srow('Away',rec(s.away))}${srow('Division',rec(s.div))}
+      ${srow('Points for',s.PF)}${srow('Points against',s.PA)}${srow('Point diff',(s.diff>=0?'+':'')+s.diff)}
+      ${srow('Longest win streak',s.streak)}
+    </div></div>`
+}
+
+/* ---- build the deck ---- */
+const track=document.getElementById('track')
+ranked.forEach((abbr,idx)=>{
+  const t=TEAMS[abbr], prim=t.primary, I=ink(prim), soft=(I==='#ffffff'?'255,255,255':'0,0,0'), s=stat[abbr]
+  const sd=seed[abbr]
+  const divTxt=`${t.conf} ${DIVNAME[t.div]||t.div}`
+  const zone = sd
+    ? `<span class="tb-zone" style="background:${sd.kind==='div'?TEAL:'rgba('+soft+',.14)'};color:${sd.kind==='div'?'#06211d':I};box-shadow:${sd.kind==='wc'?'inset 0 0 0 1.4px '+TEAL:'none'}">${sd.kind==='div'?'★ '+divTxt+' · #'+sd.n:'Wild Card · #'+sd.n}</span>`
+    : `<span class="tb-zone" style="background:rgba(${soft},.12);color:${I};opacity:.85">${divTxt}</span>`
+
+  const card=el('div','card')
+  card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`
+  card.style.color=I
+  card.innerHTML=`<div class="glow"></div>
+    <div class="topbar">
+      <div class="tb-tile" style="background:rgba(${soft},.14);color:${I}">${abbr}</div>
+      <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
+        <div class="tb-sub">NFL · 2025 · Season Film · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-right">
+        <span class="tb-rankbig"><small>#</small><b>${idx+1}</b></span>
+        <div class="tb-rec"><b>${rec(s)}</b><br><span class="pf">${s.PF} PF · ${s.PA} PA · ${(s.diff>=0?'+':'')}${s.diff}</span></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="leftcol"><div class="lbl">Season tower · wins ↑ · losses ↓ · opponent colour</div>${towerCol(abbr,I,soft)}</div>
+      ${rosterCol(abbr,I,soft)}
+      ${panel(abbr,I,soft)}
+    </div>`
+  const slide=el('div','slide'); slide.appendChild(card); track.appendChild(slide)
+})
+
+/* ---- film controls ---- */
+const N=ranked.length
+const $=id=>document.getElementById(id)
+let idx=0, playing=false, timer=null
+function render(){
+  track.style.transform=`translateX(${-idx*100}%)`
+  const abbr=ranked[idx], t=TEAMS[abbr]
+  $('pcrumb').textContent=`${idx+1} / ${N}`
+  $('pname').textContent=t.name.toUpperCase()
+  $('pdot').style.background=t.primary
+  $('prev').disabled=idx===0; $('next').disabled=idx===N-1
+  ;[...menu.children].forEach((c,i)=>c.classList.toggle('cur',i===idx))
+}
+function go(i){ idx=Math.max(0,Math.min(N-1,i)); render() }
+function setPlay(p){ playing=p; $('play').textContent=p?'⏸':'▶'; clearInterval(timer)
+  if(p) timer=setInterval(()=>{ if(idx>=N-1){setPlay(false);return} go(idx+1) },3500) }
+$('prev').onclick=()=>{setPlay(false);go(idx-1)}
+$('next').onclick=()=>{setPlay(false);go(idx+1)}
+$('restart').onclick=()=>{setPlay(false);go(0)}
+$('play').onclick=()=>setPlay(!playing)
+
+/* jump-to-team menu */
+const menu=$('menu'), kbd=$('kbd')
+ranked.forEach((abbr,i)=>{
+  const t=TEAMS[abbr], s=stat[abbr]
+  const mi=el('div','mi'); mi.setAttribute('role','option')
+  mi.innerHTML=`<span class="r">${i+1}</span><span class="dot" style="background:${t.primary}"></span><span class="nm">${t.name}</span><span class="pts">${rec(s)}</span>`
+  mi.onclick=()=>{ setPlay(false); go(i); closePops() }
+  menu.appendChild(mi)
+})
+function closePops(){ menu.classList.remove('open'); kbd.classList.remove('open') }
+function toggle(node){ const open=!node.classList.contains('open'); closePops(); if(open){ node.classList.add('open'); if(node===menu){const c=menu.children[idx]; if(c)c.scrollIntoView({block:'nearest'})} } }
+$('posbtn').onclick=e=>{ e.stopPropagation(); toggle(menu) }
+$('kbdbtn').onclick=e=>{ e.stopPropagation(); toggle(kbd) }
+document.addEventListener('click',e=>{ if(!e.target.closest('.pop')&&!e.target.closest('#posbtn')&&!e.target.closest('#kbdbtn')) closePops() })
+
+/* fullscreen */
+function toggleFs(){ const d=document; if(d.fullscreenElement){ d.exitFullscreen&&d.exitFullscreen() } else { d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen() } }
+$('fs').onclick=toggleFs
+
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){setPlay(false);closePops();go(idx+1)}
+  else if(e.key==='ArrowLeft'){setPlay(false);closePops();go(idx-1)}
+  else if(e.key===' '){e.preventDefault();setPlay(!playing)}
+  else if(e.key==='f'||e.key==='F'){toggleFs()}
+  else if(e.key==='Escape'){closePops()}
+})
+let x0=null
+addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true})
+addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50){setPlay(false);go(idx+(dx<0?1:-1))} x0=null },{passive:true})
+
+render()
+</script>
+</body>
+</html>
