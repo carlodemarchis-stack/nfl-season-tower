@@ -23,9 +23,9 @@
        display:flex;align-items:center;justify-content:center;
        -webkit-mask-image:linear-gradient(to left,#000 52%,transparent);mask-image:linear-gradient(to left,#000 52%,transparent);}
   /* soft contrasting plate so the logo reads even when its colours match the card */
-  .logo-bg::before{content:'';position:absolute;height:98%;aspect-ratio:1;border-radius:50%;
-       background:radial-gradient(circle at 50% 48%, rgba(var(--tone),.22), rgba(var(--tone),.08) 52%, transparent 70%);}
-  .logo-bg img{position:relative;height:100%;max-width:100%;object-fit:contain;opacity:.18;}
+  .logo-bg::before{content:'';position:absolute;height:104%;aspect-ratio:1;border-radius:50%;
+       background:radial-gradient(circle at 50% 48%, rgba(var(--tone),.32), rgba(var(--tone),.12) 54%, transparent 72%);}
+  .logo-bg img{position:relative;height:100%;max-width:100%;object-fit:contain;opacity:.3;}
   /* identity top bar */
   .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:16px;padding:16px 32px 13px;border-bottom:1px solid rgba(128,128,128,.22);}
   .tb-tile{width:58px;height:58px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(0,0,0,.28);padding:7px;overflow:hidden;}
@@ -50,7 +50,7 @@
   .tower{display:flex;flex-direction:column;justify-content:center;flex:1;min-height:0;--ch:clamp(15px,calc((100vh - 250px)/18),30px);}
   .tw-z{display:flex;flex-direction:column;}
   .tw-row{display:grid;grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);align-items:center;column-gap:6px;margin-bottom:2px;}
-  .tw-c{grid-column:2;width:118px;height:var(--ch);min-height:var(--ch);display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;box-sizing:border-box;font-weight:800;overflow:hidden;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
+  .tw-c{grid-column:2;grid-row:1;width:118px;height:var(--ch);min-height:var(--ch);display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;box-sizing:border-box;font-weight:800;overflow:hidden;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
   .tw-wk{font-size:.76em;opacity:.6;font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:12px;}
   .tw-o{letter-spacing:.2px;white-space:nowrap;flex:0 0 auto;}
   .tw-o .at{opacity:.62;font-weight:700;font-size:.82em;margin-right:1px;}
@@ -58,7 +58,7 @@
   .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
   .tw-c.bye{border:1px dashed rgba(128,128,128,.5);opacity:.5;}
   /* per-game point-differential bar: wins to the right of the tower, losses to the left */
-  .tw-bar{min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;}
+  .tw-bar{grid-row:1;min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;}
   .tw-bar.right{grid-column:3;justify-content:flex-start;}
   .tw-bar.left{grid-column:1;justify-content:flex-end;}
   .tw-bar i{height:calc(var(--ch)*.52);min-height:6px;border-radius:2px;flex:0 0 auto;}
