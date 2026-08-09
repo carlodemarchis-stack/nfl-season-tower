@@ -65,9 +65,10 @@
   .tw-bar.left{grid-column:1;justify-content:flex-end;}
   .tw-bar i{height:calc(var(--ch)*.52);min-height:6px;border-radius:2px;flex:0 0 auto;}
   .tw-bar b{font-size:8.5px;font-weight:800;opacity:.72;font-variant-numeric:tabular-nums;flex:0 0 auto;}
-  .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:2px 2px;}
-  .tw-lbl{font-size:8px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;opacity:.3;text-align:center;line-height:1;}
-  .tw-lbl.won{padding:2px 0 4px;} .tw-lbl.lost{padding:4px 0 2px;}
+  .tw-base{display:grid;grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);align-items:center;column-gap:6px;margin:3px 0;}
+  .tw-rule{grid-column:2;height:0;border-top:2px dashed rgba(128,128,128,.55);}
+  .tw-lbl{font-size:8px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;opacity:.36;line-height:1;}
+  .tw-lbl.lost{grid-column:1;justify-self:end;} .tw-lbl.won{grid-column:3;justify-self:start;}
   /* right column: tabbed roster (top) + visual splits (bottom) */
   .rightcol{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0;height:100%;}
   .roster{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1 1 0;}
@@ -262,12 +263,14 @@ function towerCell(abbr,ty,g,I,soft,maxDiff){
   const at=g.ha==='A'?'<span class="at">@</span>':''
   const barW=Math.max(3,Math.round(Math.abs(diff)/maxDiff*90))
   const sign=diff>0?'+':diff<0?'−':'±'
-  const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.res} ${r.us}-${r.them} (${sign}${Math.abs(diff)})`
+  const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${ty==='tie'?'Tied '+r.us+'-'+r.them:r.res+' '+r.us+'-'+r.them+' ('+sign+Math.abs(diff)+')'}`
   const barI=`<i style="width:${barW}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.16)"></i>`
   const barB=`<b style="color:${I}">${sign}${Math.abs(diff)}</b>`
-  const bar = ty==='loss'
-    ? `<span class="tw-bar left" title="${sign}${Math.abs(diff)} pts">${barB}${barI}</span>`
-    : `<span class="tw-bar right" title="${sign}${Math.abs(diff)} pts">${barI}${barB}</span>`
+  const bar = ty==='tie'
+    ? `<span class="tw-bar right" title="Tied"><b style="color:${I};opacity:.66;letter-spacing:.4px">TIED</b></span>`
+    : ty==='loss'
+      ? `<span class="tw-bar left" title="${sign}${Math.abs(diff)} pts">${barB}${barI}</span>`
+      : `<span class="tw-bar right" title="${sign}${Math.abs(diff)} pts">${barI}${barB}</span>`
   return `<div class="tw-row"><div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-wk">${g.w}</span><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div>${bar}</div>`
 }
 // One team's tower: wins+ties above the baseline (calendar order, latest on top),
@@ -290,7 +293,7 @@ function towerCol(abbr,I,soft){
   let play=''; above.forEach(([ty,g])=>play+=towerCell(abbr,ty,g,I,soft,maxDiff))
   const gap=(upc.length&&play)?'<div class="tw-gap"></div>':''   // separate upcoming from the played tower
   let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft,maxDiff))
-  return `<div class="tower"><div class="tw-z">${top}${gap}${play}</div><div class="tw-lbl won">Won</div><div class="tw-base"></div><div class="tw-lbl lost">Lost</div><div class="tw-z">${dn}</div></div>`
+  return `<div class="tower"><div class="tw-z">${top}${gap}${play}</div><div class="tw-base"><span class="tw-lbl lost">Lost</span><span class="tw-rule"></span><span class="tw-lbl won">Won</span></div><div class="tw-z">${dn}</div></div>`
 }
 const CATS=[['offense','offense','Offense'],['defense','defense','Defense'],['specialTeam','special','Special'],['injuredReserveOrOut','reserve','Reserve']]
 function rosterCol(abbr,I,soft){
