@@ -43,22 +43,24 @@
   .tb-rec b{font-size:27px;}
   .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
   /* body grid: matches | roster | season panel */
-  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(290px,352px) minmax(400px,560px) minmax(178px,216px);gap:28px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(300px,372px) minmax(390px,548px) minmax(174px,212px);gap:26px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
   .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
   .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
   /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
   .tower{display:flex;flex-direction:column;justify-content:center;flex:1;min-height:0;--ch:clamp(15px,calc((100vh - 250px)/18),30px);}
   .tw-z{display:flex;flex-direction:column;}
-  .tw-row{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
-  .tw-c{flex:0 0 118px;width:118px;height:var(--ch);min-height:var(--ch);display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;box-sizing:border-box;font-weight:800;overflow:hidden;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
+  .tw-row{display:grid;grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);align-items:center;column-gap:6px;margin-bottom:2px;}
+  .tw-c{grid-column:2;width:118px;height:var(--ch);min-height:var(--ch);display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;box-sizing:border-box;font-weight:800;overflow:hidden;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
   .tw-wk{font-size:.76em;opacity:.6;font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:12px;}
   .tw-o{letter-spacing:.2px;white-space:nowrap;flex:0 0 auto;}
   .tw-o .at{opacity:.62;font-weight:700;font-size:.82em;margin-right:1px;}
   .tw-s{font-variant-numeric:tabular-nums;font-size:.9em;white-space:nowrap;flex:0 0 auto;}
   .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
   .tw-c.bye{border:1px dashed rgba(128,128,128,.5);opacity:.5;}
-  /* per-game point-differential bar, right of the tower, in the opponent's colour */
-  .tw-bar{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:5px;}
+  /* per-game point-differential bar: wins to the right of the tower, losses to the left */
+  .tw-bar{min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;}
+  .tw-bar.right{grid-column:3;justify-content:flex-start;}
+  .tw-bar.left{grid-column:1;justify-content:flex-end;}
   .tw-bar i{height:calc(var(--ch)*.52);min-height:6px;border-radius:2px;flex:0 0 auto;}
   .tw-bar b{font-size:8.5px;font-weight:800;opacity:.72;font-variant-numeric:tabular-nums;flex:0 0 auto;}
   .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:5px 2px;}
@@ -226,10 +228,15 @@ function towerCell(abbr,ty,g,I,soft,maxDiff){
   else if(ty==='loss'){ bg='#ffffff'; color=op; bd='1.6px solid '+RED }
   else { bg=mix(op,'#ffffff',.18); color=ink(bg); bd='1px solid rgba(0,0,0,.12)' }
   const at=g.ha==='A'?'<span class="at">@</span>':''
-  const barW=Math.max(3,Math.round(Math.abs(diff)/maxDiff*120))
+  const barW=Math.max(3,Math.round(Math.abs(diff)/maxDiff*90))
   const sign=diff>0?'+':diff<0?'−':'±'
   const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.res} ${r.us}-${r.them} (${sign}${Math.abs(diff)})`
-  return `<div class="tw-row"><div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-wk">${g.w}</span><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div><span class="tw-bar" title="${sign}${Math.abs(diff)} pts"><i style="width:${barW}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.16)"></i><b style="color:${I}">${sign}${Math.abs(diff)}</b></span></div>`
+  const barI=`<i style="width:${barW}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.16)"></i>`
+  const barB=`<b style="color:${I}">${sign}${Math.abs(diff)}</b>`
+  const bar = ty==='loss'
+    ? `<span class="tw-bar left" title="${sign}${Math.abs(diff)} pts">${barB}${barI}</span>`
+    : `<span class="tw-bar right" title="${sign}${Math.abs(diff)} pts">${barI}${barB}</span>`
+  return `<div class="tw-row"><div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-wk">${g.w}</span><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div>${bar}</div>`
 }
 // One team's tower: wins+ties above the baseline (calendar order, latest on top),
 // losses below (earliest nearest the baseline), bye at the ceiling. Any week>18 game
