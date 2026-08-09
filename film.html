@@ -95,6 +95,9 @@
   .bar button.seasonbtn{width:auto;padding:0 14px;font-weight:800;font-size:13px;letter-spacing:.3px;font-variant-numeric:tabular-nums;color:var(--teal);}
   .bar .play{width:48px;height:48px;background:var(--teal);color:var(--teal-ink);font-size:19px;}
   .bar .play:hover{background:#18c6b8;}
+  .bar .wk{display:flex;align-items:center;gap:8px;padding:0 4px 0 10px;}
+  .bar .wk input[type=range]{width:90px;accent-color:var(--teal);cursor:pointer;}
+  .bar .wk #wklab{font-size:12px;font-weight:800;color:var(--teal);min-width:42px;font-variant-numeric:tabular-nums;letter-spacing:.2px;}
   .bar button.pos{display:flex;align-items:center;gap:9px;width:auto;min-width:214px;height:38px;padding:0 12px 0 14px;border-radius:11px;
        background:rgba(255,255,255,.05);color:#e7e9ec;font-weight:800;font-size:13px;letter-spacing:.3px;cursor:pointer;}
   .bar button.pos:hover{background:rgba(255,255,255,.12);}
@@ -142,6 +145,7 @@
     <button id="prev" title="Previous (←)">‹</button>
     <button class="play" id="play" title="Play / pause (space)">▶</button>
     <button id="next" title="Next (→)">›</button>
+    <div class="wk" title="Match week — weeks after this are simulated"><input type="range" id="wk" min="1" max="18" step="1" value="18"><span id="wklab">Full</span></div>
     <button class="pos" id="posbtn" title="Jump to team" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 32</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
     <button id="fs" title="Fullscreen (F)">⛶</button>
     <button id="kbdbtn" title="Keyboard shortcuts">⌨</button>
@@ -178,42 +182,70 @@ const POS_ORDER=['QB','RB','FB','WR','TE','T','OT','LT','RT','G','OG','LG','RG',
 const posRank=p=>{const i=POS_ORDER.indexOf(p);return i<0?99:i}
 const UNITS=[['offense','Offense'],['defense','Defense'],['specialTeam','Special Teams'],['injuredReserveOrOut','Reserve / Out']]
 
-const resOf=(abbr,w)=>RESULTS[abbr+':'+w]||null
+const MAXW=18, SEED=20250809
+// tower's seeded engine (FNV-1a hash + mulberry32), used to simulate not-yet-played games
+const hashStr=s=>{ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619) } return h>>>0 }
+const mulberry32=a=>()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296 }
+const infer=(us,them)=>us>them?'W':us<them?'L':'T'
 
-/* ---- standings ---- */
-const stat={}
-for(const abbr in TEAMS){
-  const t=TEAMS[abbr]
-  const st={W:0,L:0,T:0,PF:0,PA:0,played:0,home:{W:0,L:0,T:0},away:{W:0,L:0,T:0},div:{W:0,L:0,T:0}}
-  const games=[]
-  for(const g of t.games){ const r=resOf(abbr,g.w); if(!r) continue
-    st.played++; st.PF+=r.us; st.PA+=r.them
-    const k=r.res==='W'?'W':r.res==='L'?'L':'T'; st[k]++
-    st[g.ha==='H'?'home':'away'][k]++
-    const o=TEAMS[g.opp]; if(o&&o.conf===t.conf&&o.div===t.div) st.div[k]++
-    games.push({w:g.w,res:r.res})
+let curWeek=MAXW, RES={}
+const resOf=(abbr,w)=>RES[abbr+':'+w]||null
+
+// Weeks ≤ week use the real 2025 result; later weeks are simulated with the tower's
+// engine (same scoring model, deterministic per game, both sides consistent).
+function buildResults(week){
+  const R={}, done=new Set()
+  for(const ab of Object.keys(TEAMS)){
+    for(const g of TEAMS[ab].games){
+      const k=ab+':'+g.w
+      if(g.w<=week){ const real=RESULTS[k]; if(real) R[k]={...real}; continue }
+      const pair=[ab,g.opp].sort(), id=g.w+'|'+pair.join('|'); if(done.has(id)) continue; done.add(id)
+      const rnd=mulberry32(hashStr(id+':'+SEED))
+      let a,b
+      if(rnd()<0.03){ a=b=17+Math.floor(rnd()*11) }
+      else { const win=rnd()<0.5, hi=17+Math.floor(rnd()*21); let lo=6+Math.floor(rnd()*Math.max(1,hi-9)); if(lo>=hi) lo=hi-3; a=win?hi:lo; b=win?lo:hi }
+      R[pair[0]+':'+g.w]={us:a,them:b,res:infer(a,b),sim:true}
+      R[pair[1]+':'+g.w]={us:b,them:a,res:infer(b,a),sim:true}
+    }
   }
-  games.sort((a,b)=>a.w-b.w)
-  let cur=0,mx=0; for(const p of games){ if(p.res==='W'){cur++;mx=Math.max(mx,cur)} else cur=0 }
-  st.streak=mx; st.pct=st.played?(st.W+0.5*st.T)/st.played:0; st.diff=st.PF-st.PA
-  stat[abbr]=st
+  return R
 }
-const ranked=Object.keys(TEAMS).sort((a,b)=>{
-  const A=stat[a],B=stat[b]
-  if(B.pct!==A.pct) return B.pct-A.pct
-  if(B.W!==A.W) return B.W-A.W
-  if(A.L!==B.L) return A.L-B.L
-  return a<b?-1:1
-})
 
-/* ---- playoff seeds (4 division winners + 3 wild cards per conference) ---- */
-const seed={}
-for(const conf of ['AFC','NFC']){
-  const confTeams=ranked.filter(a=>TEAMS[a].conf===conf)            // already in record order
-  const seen={}, winners=[]
-  for(const a of confTeams){ const d=TEAMS[a].div; if(!seen[d]){ seen[d]=1; winners.push(a) } }  // best per division
-  winners.forEach((a,i)=>seed[a]={n:i+1,kind:'div'})
-  confTeams.filter(a=>!winners.includes(a)).slice(0,3).forEach((a,i)=>seed[a]={n:i+5,kind:'wc'})
+/* ---- standings + ranking + playoff seeds, recomputed per selected week ---- */
+let stat={}, ranked=[], seed={}
+function computeSeason(week){
+  curWeek=week; RES=buildResults(week); stat={}
+  for(const abbr in TEAMS){
+    const t=TEAMS[abbr]
+    const st={W:0,L:0,T:0,PF:0,PA:0,played:0,home:{W:0,L:0,T:0},away:{W:0,L:0,T:0},div:{W:0,L:0,T:0}}
+    const games=[]
+    for(const g of t.games){ const r=resOf(abbr,g.w); if(!r) continue
+      st.played++; st.PF+=r.us; st.PA+=r.them
+      const kk=r.res==='W'?'W':r.res==='L'?'L':'T'; st[kk]++
+      st[g.ha==='H'?'home':'away'][kk]++
+      const o=TEAMS[g.opp]; if(o&&o.conf===t.conf&&o.div===t.div) st.div[kk]++
+      games.push({w:g.w,res:r.res})
+    }
+    games.sort((a,b)=>a.w-b.w)
+    let cur=0,mx=0; for(const p of games){ if(p.res==='W'){cur++;mx=Math.max(mx,cur)} else cur=0 }
+    st.streak=mx; st.pct=st.played?(st.W+0.5*st.T)/st.played:0; st.diff=st.PF-st.PA
+    stat[abbr]=st
+  }
+  ranked=Object.keys(TEAMS).sort((a,b)=>{
+    const A=stat[a],B=stat[b]
+    if(B.pct!==A.pct) return B.pct-A.pct
+    if(B.W!==A.W) return B.W-A.W
+    if(A.L!==B.L) return A.L-B.L
+    return a<b?-1:1
+  })
+  seed={}
+  for(const conf of ['AFC','NFC']){
+    const confTeams=ranked.filter(a=>TEAMS[a].conf===conf)
+    const seen={}, winners=[]
+    for(const a of confTeams){ const d=TEAMS[a].div; if(!seen[d]){ seen[d]=1; winners.push(a) } }
+    winners.forEach((a,i)=>seed[a]={n:i+1,kind:'div'})
+    confTeams.filter(a=>!winners.includes(a)).slice(0,3).forEach((a,i)=>seed[a]={n:i+5,kind:'wc'})
+  }
 }
 const rec=s=>`${s.W}-${s.L}${s.T?'-'+s.T:''}`
 
@@ -281,7 +313,9 @@ function panel(abbr,I,soft){
 
 /* ---- build the deck ---- */
 const track=document.getElementById('track')
-ranked.forEach((abbr,idx)=>{
+function buildDeck(){
+ track.innerHTML=''
+ ranked.forEach((abbr,idx)=>{
   const t=TEAMS[abbr], prim=t.primary, I=ink(prim), soft=(I==='#ffffff'?'255,255,255':'0,0,0'), s=stat[abbr]
   const sd=seed[abbr]
   const divTxt=`${t.conf} ${DIVNAME[t.div]||t.div}`
@@ -297,7 +331,7 @@ ranked.forEach((abbr,idx)=>{
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
-        <div class="tb-sub">NFL · 2025 · Season Film · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
+        <div class="tb-sub">NFL · 2025 · ${curWeek>=MAXW?'Season Film':'Through Wk '+curWeek+' · rest simulated'} · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
         <span class="tb-rankbig"><small>#</small><b>${idx+1}</b></span>
@@ -310,10 +344,11 @@ ranked.forEach((abbr,idx)=>{
       ${panel(abbr,I,soft)}
     </div>`
   const slide=el('div','slide'); slide.appendChild(card); track.appendChild(slide)
-})
+ })
+}
 
 /* ---- film controls ---- */
-const N=ranked.length
+const N=Object.keys(TEAMS).length
 const $=id=>document.getElementById(id)
 let idx=0, playing=false, timer=null
 // Deep-link the current card via the URL hash (#DEN or #18) so reload / share reopens it.
@@ -344,13 +379,16 @@ $('play').onclick=()=>setPlay(!playing)
 
 /* jump-to-team menu */
 const menu=$('menu'), kbd=$('kbd')
-ranked.forEach((abbr,i)=>{
+function buildMenu(){
+ menu.innerHTML=''
+ ranked.forEach((abbr,i)=>{
   const t=TEAMS[abbr], s=stat[abbr]
   const mi=el('div','mi'); mi.setAttribute('role','option')
   mi.innerHTML=`<span class="r">${i+1}</span><span class="dot" style="background:${t.primary}"></span><span class="nm">${t.name}</span><span class="pts">${rec(s)}</span>`
   mi.onclick=()=>{ setPlay(false); go(i); closePops() }
   menu.appendChild(mi)
-})
+ })
+}
 function closePops(){ menu.classList.remove('open'); kbd.classList.remove('open') }
 function toggle(node){ const open=!node.classList.contains('open'); closePops(); if(open){ node.classList.add('open'); if(node===menu){const c=menu.children[idx]; if(c)c.scrollIntoView({block:'nearest'})} } }
 $('posbtn').onclick=e=>{ e.stopPropagation(); toggle(menu) }
@@ -375,6 +413,20 @@ addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0
 // back/forward or a manually edited hash re-syncs the deck
 addEventListener('hashchange',()=>{ const i=idxFromHash(); if(i!==idx){ setPlay(false); idx=i; render() } })
 
+/* ---- match-week selector (later weeks simulated) ---- */
+const wk=$('wk'), wklab=$('wklab')
+const wkLabel=v=>v>=MAXW?'Full':('Wk '+v)
+function rebuild(week){
+  const cur=ranked[idx]                 // keep the same team across the reorder
+  computeSeason(week); buildDeck(); buildMenu()
+  idx=Math.max(0, ranked.indexOf(cur))
+  wklab.textContent=wkLabel(week); render()
+}
+wk.oninput=()=>{ wklab.textContent=wkLabel(+wk.value) }   // live label while dragging
+wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }     // recompute on release
+
+computeSeason(MAXW)
+buildDeck(); buildMenu()
 idx=idxFromHash()
 render()
 </script>
