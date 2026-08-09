@@ -43,7 +43,7 @@
   .tb-rec b{font-size:27px;}
   .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
   /* body grid: matches | roster | season panel */
-  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(300px,372px) minmax(390px,548px) minmax(174px,212px);gap:26px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(296px,360px) minmax(150px,186px) minmax(0,1fr);gap:26px;justify-content:stretch;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
   .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
   .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
   /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
@@ -69,12 +69,12 @@
   .roster::-webkit-scrollbar{width:6px;} .roster::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:6px;}
   .rhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 5px;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.62;position:sticky;top:0;}
   .ph{font-weight:800;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;opacity:.6;padding:8px 6px 2px;}
-  .pl{display:grid;grid-template-columns:20px 21px 1fr auto;align-items:center;gap:8px;height:23px;padding:0 7px;border-radius:5px;font-size:11.5px;font-weight:700;}
+  .pl{display:grid;grid-template-columns:18px 20px 1fr auto;align-items:center;gap:7px;min-height:22px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;}
   .pl .num{font-variant-numeric:tabular-nums;opacity:.55;text-align:center;font-size:10px;}
-  .pl .pic{width:21px;height:21px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
-  .pl .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.1px;}
-  .pl .pos{font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;}
-  .rgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px 10px;}
+  .pl .pic{width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
+  .pl .pn{letter-spacing:.1px;white-space:normal;line-height:1.08;overflow-wrap:break-word;min-width:0;}
+  .pl .pos{font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;align-self:center;}
+  .rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px 12px;}
   .rna{opacity:.5;font-size:12px;padding:12px 6px;}
   /* season panel (right) */
   .rpanel{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;overflow:hidden;}
@@ -95,9 +95,8 @@
   .bar button.seasonbtn{width:auto;padding:0 14px;font-weight:800;font-size:13px;letter-spacing:.3px;font-variant-numeric:tabular-nums;color:var(--teal);}
   .bar .play{width:48px;height:48px;background:var(--teal);color:var(--teal-ink);font-size:19px;}
   .bar .play:hover{background:#18c6b8;}
-  .bar .wk{display:flex;align-items:center;gap:8px;padding:0 4px 0 10px;}
-  .bar .wk input[type=range]{width:90px;accent-color:var(--teal);cursor:pointer;}
-  .bar .wk #wklab{font-size:12px;font-weight:800;color:var(--teal);min-width:42px;font-variant-numeric:tabular-nums;letter-spacing:.2px;}
+  .bar .wksel{height:38px;border:none;border-radius:11px;background:rgba(255,255,255,.06);color:var(--teal);font-family:inherit;font-weight:800;font-size:12.5px;padding:0 10px;margin:0 2px;cursor:pointer;font-variant-numeric:tabular-nums;}
+  .bar .wksel:hover{background:rgba(255,255,255,.13);}
   .bar button.pos{display:flex;align-items:center;gap:9px;width:auto;min-width:214px;height:38px;padding:0 12px 0 14px;border-radius:11px;
        background:rgba(255,255,255,.05);color:#e7e9ec;font-weight:800;font-size:13px;letter-spacing:.3px;cursor:pointer;}
   .bar button.pos:hover{background:rgba(255,255,255,.12);}
@@ -128,12 +127,11 @@
   .kbd kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:5px;padding:1px 8px;font-family:inherit;font-weight:700;font-size:12px;color:#fff;}
   @media(max-width:980px){
     .grid{grid-template-columns:1fr 1fr;gap:16px;overflow-y:auto;align-items:start;padding-bottom:96px;}
-    .roster{max-height:none;overflow:visible;}
-    .rpanel{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;gap:20px;max-height:none;}
-    .donutwrap{flex:0 0 auto;} .stats{flex:1;min-width:220px;}
-    .back{display:none;}
+    .leftcol{grid-column:1;} .rpanel{grid-column:2;max-height:none;}
+    .roster{grid-column:1/-1;max-height:none;overflow:visible;}
+    .rgrid{grid-template-columns:repeat(3,1fr);}
   }
-  @media(max-width:600px){ .grid{grid-template-columns:1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
+  @media(max-width:600px){ .grid{grid-template-columns:1fr;} .rgrid{grid-template-columns:1fr 1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
 </style>
 </head>
 <body>
@@ -145,7 +143,7 @@
     <button id="prev" title="Previous (←)">‹</button>
     <button class="play" id="play" title="Play / pause (space)">▶</button>
     <button id="next" title="Next (→)">›</button>
-    <div class="wk" title="Match week — weeks after this are simulated"><input type="range" id="wk" min="1" max="18" step="1" value="18"><span id="wklab">Full</span></div>
+    <select id="wk" class="wksel" title="Match week — weeks after this are simulated"></select>
     <button class="pos" id="posbtn" title="Jump to team" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 32</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
     <button id="fs" title="Fullscreen (F)">⛶</button>
     <button id="kbdbtn" title="Keyboard shortcuts">⌨</button>
@@ -340,8 +338,8 @@ function buildDeck(){
     </div>
     <div class="grid">
       <div class="leftcol"><div class="lbl">Season tower · wins ↑ · losses ↓ · opponent colour</div>${towerCol(abbr,I,soft)}</div>
-      ${rosterCol(abbr,I,soft)}
       ${panel(abbr,I,soft)}
+      ${rosterCol(abbr,I,soft)}
     </div>`
   const slide=el('div','slide'); slide.appendChild(card); track.appendChild(slide)
  })
@@ -414,16 +412,15 @@ addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0
 addEventListener('hashchange',()=>{ const i=idxFromHash(); if(i!==idx){ setPlay(false); idx=i; render() } })
 
 /* ---- match-week selector (later weeks simulated) ---- */
-const wk=$('wk'), wklab=$('wklab')
-const wkLabel=v=>v>=MAXW?'Full':('Wk '+v)
+const wk=$('wk')
+for(let w=MAXW; w>=1; w--){ const o=document.createElement('option'); o.value=w; o.textContent=w>=MAXW?'Full':('Wk '+w); wk.appendChild(o) }
+wk.value=MAXW
 function rebuild(week){
   const cur=ranked[idx]                 // keep the same team across the reorder
   computeSeason(week); buildDeck(); buildMenu()
-  idx=Math.max(0, ranked.indexOf(cur))
-  wklab.textContent=wkLabel(week); render()
+  idx=Math.max(0, ranked.indexOf(cur)); render()
 }
-wk.oninput=()=>{ wklab.textContent=wkLabel(+wk.value) }   // live label while dragging
-wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }     // recompute on release
+wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }
 
 computeSeason(MAXW)
 buildDeck(); buildMenu()
