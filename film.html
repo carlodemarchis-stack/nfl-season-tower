@@ -43,7 +43,7 @@
   .tb-rec b{font-size:27px;}
   .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
   /* body grid: matches | roster | season panel */
-  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(296px,360px) minmax(150px,186px) minmax(0,1fr);gap:26px;justify-content:stretch;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(360px,44%) minmax(0,1fr);gap:30px;justify-content:stretch;padding:18px 32px 96px;flex:1;min-height:0;align-items:stretch;}
   .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
   .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
   /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
@@ -65,26 +65,42 @@
   .tw-bar.left{grid-column:1;justify-content:flex-end;}
   .tw-bar i{height:calc(var(--ch)*.52);min-height:6px;border-radius:2px;flex:0 0 auto;}
   .tw-bar b{font-size:8.5px;font-weight:800;opacity:.72;font-variant-numeric:tabular-nums;flex:0 0 auto;}
-  .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:5px 2px;}
-  /* roster (centre, scrollable) */
-  .roster{display:flex;flex-direction:column;gap:1px;min-width:0;max-height:100%;overflow-y:auto;padding-right:4px;}
-  .roster::-webkit-scrollbar{width:6px;} .roster::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:6px;}
-  .rhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 5px;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.62;position:sticky;top:0;}
-  .ph{font-weight:800;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;opacity:.6;padding:8px 6px 2px;}
-  .pl{display:grid;grid-template-columns:18px 20px 1fr auto;align-items:center;gap:7px;min-height:22px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;}
+  .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:2px 2px;}
+  .tw-lbl{font-size:8px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;opacity:.3;text-align:center;line-height:1;}
+  .tw-lbl.won{padding:2px 0 4px;} .tw-lbl.lost{padding:4px 0 2px;}
+  /* right column: tabbed roster (top) + visual splits (bottom) */
+  .rightcol{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0;height:100%;}
+  .roster{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1 1 0;}
+  .rhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 6px;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.62;flex:0 0 auto;}
+  .rtabs{display:flex;gap:6px;flex-wrap:wrap;flex:0 0 auto;margin-bottom:8px;}
+  .rtab{border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:.2px;cursor:pointer;color:inherit;font-family:inherit;background:rgba(128,128,128,.16);opacity:.66;border-bottom:2px solid transparent;transition:opacity .12s,background .12s;}
+  .rtab:hover{opacity:.9;}
+  .rtab b{font-weight:800;opacity:.55;margin-left:3px;}
+  html[data-rtab="offense"] .rtab.offense,html[data-rtab="defense"] .rtab.defense,html[data-rtab="special"] .rtab.special,html[data-rtab="reserve"] .rtab.reserve{opacity:1;background:rgba(128,128,128,.32);border-bottom-color:currentColor;}
+  .rcats{flex:1 1 0;min-height:0;overflow-y:auto;padding-right:4px;}
+  .rcats::-webkit-scrollbar{width:6px;} .rcats::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:6px;}
+  .rcat{display:none;}
+  html[data-rtab="offense"] .rcat.offense,html[data-rtab="defense"] .rcat.defense,html[data-rtab="special"] .rcat.special,html[data-rtab="reserve"] .rcat.reserve{display:block;}
+  .ph{font-weight:800;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;opacity:.6;padding:2px 6px 6px;}
+  .pl{display:grid;grid-template-columns:20px 22px 1fr auto;align-items:center;gap:8px;min-height:24px;padding:2px 8px;border-radius:5px;font-size:11.5px;font-weight:700;}
   .pl .num{font-variant-numeric:tabular-nums;opacity:.55;text-align:center;font-size:10px;}
-  .pl .pic{width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
+  .pl .pic{width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;box-shadow:0 0 0 1px rgba(128,128,128,.28);background:rgba(128,128,128,.2);}
   .pl .pn{letter-spacing:.1px;white-space:normal;line-height:1.08;overflow-wrap:break-word;min-width:0;}
   .pl .pos{font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;align-self:center;}
-  .rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px 12px;}
+  .rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px 14px;}
   .rna{opacity:.5;font-size:12px;padding:12px 6px;}
-  /* season panel (right) */
-  .rpanel{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;overflow:hidden;}
-  .stats{display:flex;flex-direction:column;gap:1px;}
-  .stats .ph{padding:0 4px 4px;}
-  .srow{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:700;}
-  .srow .sl{opacity:.72;letter-spacing:.2px;}
-  .srow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  /* visual season splits (below the roster) */
+  .rpanel{flex:0 0 auto;display:flex;flex-direction:column;gap:11px;min-width:0;}
+  .splbars{display:flex;flex-direction:column;gap:8px;}
+  .splrow{display:grid;grid-template-columns:66px 1fr auto;align-items:center;gap:11px;font-size:11px;font-weight:700;}
+  .splrow .sl{opacity:.72;letter-spacing:.3px;text-transform:uppercase;font-size:9.5px;font-weight:800;}
+  .spl-track{display:flex;height:13px;border-radius:4px;overflow:hidden;background:rgba(128,128,128,.2);}
+  .spl-track i{height:100%;}
+  .splrow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;min-width:38px;text-align:right;}
+  .stiles{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+  .stile{background:rgba(128,128,128,.15);border-radius:10px;padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .stile .k{font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.6;}
+  .stile .v{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.2px;}
   /* bottom control bar (teal takeover) */
   .bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;
        background:rgba(20,22,26,.92);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:9px 12px;
@@ -128,12 +144,11 @@
   .kbd .krow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;color:#cfd3d8;}
   .kbd kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:5px;padding:1px 8px;font-family:inherit;font-weight:700;font-size:12px;color:#fff;}
   @media(max-width:980px){
-    .grid{grid-template-columns:1fr 1fr;gap:16px;overflow-y:auto;align-items:start;padding-bottom:96px;}
-    .leftcol{grid-column:1;} .rpanel{grid-column:2;max-height:none;}
-    .roster{grid-column:1/-1;max-height:none;overflow:visible;}
-    .rgrid{grid-template-columns:repeat(3,1fr);}
+    .grid{grid-template-columns:1fr;gap:16px;overflow-y:auto;align-items:start;padding-bottom:96px;}
+    .rightcol{height:auto;} .roster{flex:0 0 auto;} .rcats{overflow:visible;}
+    .rgrid{grid-template-columns:repeat(2,1fr);}
   }
-  @media(max-width:600px){ .grid{grid-template-columns:1fr;} .rgrid{grid-template-columns:1fr 1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
+  @media(max-width:600px){ .rgrid{grid-template-columns:1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
 </style>
 </head>
 <body>
@@ -188,9 +203,9 @@ let curWeek=MAXW
 // (rendered as upcoming tower cells) and do not count toward standings. No simulation.
 const resOf=(abbr,w)=> (w<=curWeek ? (RESULTS[abbr+':'+w]||null) : null)
 
-/* ---- standings + ranking + playoff seeds, recomputed per selected week ---- */
+/* ---- per-team stats through the selected week (values only) ---- */
 let stat={}, ranked=[], seed={}
-function computeSeason(week){
+function computeStats(week){
   curWeek=week; stat={}
   for(const abbr in TEAMS){
     const t=TEAMS[abbr]
@@ -208,6 +223,10 @@ function computeSeason(week){
     st.streak=mx; st.pct=st.played?(st.W+0.5*st.T)/st.played:0; st.diff=st.PF-st.PA
     stat[abbr]=st
   }
+}
+// Deck order + playoff seeds are FROZEN from the full season — changing the week only updates
+// each card's values in place, so the cards never reshuffle.
+function freezeRanking(){
   ranked=Object.keys(TEAMS).sort((a,b)=>{
     const A=stat[a],B=stat[b]
     if(B.pct!==A.pct) return B.pct-A.pct
@@ -262,7 +281,8 @@ function towerCol(abbr,I,soft){
     maxDiff=Math.max(maxDiff,Math.abs(r.us-r.them))
     if(r.res==='W')wins.push(g); else if(r.res==='L')losses.push(g); else ties.push(g) }
   let bye=null; for(let w=1;w<=18;w++){ if(!wk.has(w)){ bye=w; break } }
-  const above=[...wins.map(g=>['win',g]),...ties.map(g=>['tie',g])].sort((a,b)=>b[1].w-a[1].w)
+  // wins on top (week desc), then ties sitting right on the line between wins and losses
+  const above=[...[...wins].sort((a,b)=>b.w-a.w).map(g=>['win',g]), ...[...ties].sort((a,b)=>b.w-a.w).map(g=>['tie',g])]
   const below=[...losses].sort((a,b)=>a.w-b.w)
   // ceiling: to-play games + the bye, latest week on top (tower "upcoming" block)
   const ceil=[...upc.map(g=>['up',g]), ...(bye?[['bye',{w:bye}]]:[])].sort((a,b)=>b[1].w-a[1].w)
@@ -270,30 +290,35 @@ function towerCol(abbr,I,soft){
   let play=''; above.forEach(([ty,g])=>play+=towerCell(abbr,ty,g,I,soft,maxDiff))
   const gap=(upc.length&&play)?'<div class="tw-gap"></div>':''   // separate upcoming from the played tower
   let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft,maxDiff))
-  return `<div class="tower"><div class="tw-z">${top}${gap}${play}</div><div class="tw-base"></div><div class="tw-z">${dn}</div></div>`
+  return `<div class="tower"><div class="tw-z">${top}${gap}${play}</div><div class="tw-lbl won">Won</div><div class="tw-base"></div><div class="tw-lbl lost">Lost</div><div class="tw-z">${dn}</div></div>`
 }
+const CATS=[['offense','offense','Offense'],['defense','defense','Defense'],['specialTeam','special','Special'],['injuredReserveOrOut','reserve','Reserve']]
 function rosterCol(abbr,I,soft){
   const R=ROSTERS[abbr]
-  let h=`<div class="rhead" style="background:transparent"><span>Roster</span><span>${R?R.count:0} players</span></div>`
-  if(!R) return `<div class="roster">${h}<div class="rna">Roster data unavailable for this season.</div></div>`
-  UNITS.forEach(([u,label])=>{
+  const head=`<div class="rhead"><span>Roster</span><span>${R?R.count:0} players</span></div>`
+  if(!R) return `<div class="roster">${head}<div class="rna">Roster data unavailable for this season.</div></div>`
+  let tabs='', cats=''
+  CATS.forEach(([u,cls,label])=>{
     const ps=R.players.filter(p=>p.u===u).sort((a,b)=>posRank(a.pos)-posRank(b.pos)||(+(a.j||999))-(+(b.j||999)))
     if(!ps.length) return
-    h+=`<div class="ph">${label} · ${ps.length}</div><div class="rgrid">`
-    ps.forEach(p=>{ h+=`<div class="pl" style="background:rgba(${soft},.07);color:${I}"><span class="num">${p.j||''}</span><img class="pic" loading="lazy" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" onerror="this.onerror=null;this.src='${SIL}'"><span class="pn">${p.n}</span><span class="pos" style="background:rgba(${soft},.14)">${p.pos}</span></div>` })
-    h+=`</div>`
+    tabs+=`<button class="rtab ${cls}" data-tab="${cls}">${label}<b>${ps.length}</b></button>`
+    let grid=''
+    ps.forEach(p=>{ grid+=`<div class="pl" style="background:rgba(${soft},.07);color:${I}"><span class="num">${p.j||''}</span><img class="pic" loading="lazy" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" onerror="this.onerror=null;this.src='${SIL}'"><span class="pn">${p.n}</span><span class="pos" style="background:rgba(${soft},.14)">${p.pos}</span></div>` })
+    cats+=`<div class="rcat ${cls}"><div class="rgrid">${grid}</div></div>`
   })
-  return `<div class="roster">${h}</div>`
+  return `<div class="roster">${head}<div class="rtabs">${tabs}</div><div class="rcats">${cats}</div></div>`
 }
 function panel(abbr,I,soft){
   const s=stat[abbr]
-  const srow=(l,v)=>`<div class="srow" style="background:rgba(${soft},.08)"><span class="sl">${l}</span><span class="sv">${v}</span></div>`
-  return `<div class="rpanel">
-    <div class="stats"><div class="ph">Season splits</div>
-      ${srow('Home',rec(s.home))}${srow('Away',rec(s.away))}${srow('Division',rec(s.div))}
-      ${srow('Points for',s.PF)}${srow('Points against',s.PA)}${srow('Point diff',(s.diff>=0?'+':'')+s.diff)}
-      ${srow('Longest win streak',s.streak)}
-    </div></div>`
+  const bar=(lbl,d)=>{ const tot=(d.W+d.L+d.T)||1
+    return `<div class="splrow"><span class="sl">${lbl}</span><div class="spl-track">`+
+      `<i style="width:${d.W/tot*100}%;background:${TEAL}"></i><i style="width:${d.T/tot*100}%;background:${AMBER}"></i><i style="width:${d.L/tot*100}%;background:${RED}"></i></div>`+
+      `<span class="sv">${rec(d)}</span></div>` }
+  const tile=(k,v)=>`<div class="stile" style="background:rgba(${soft},.13)"><span class="k">${k}</span><span class="v">${v}</span></div>`
+  return `<div class="rpanel"><div class="ph">Season splits</div>
+    <div class="splbars">${bar('Home',s.home)}${bar('Away',s.away)}${bar('Division',s.div)}</div>
+    <div class="stiles">${tile('PF',s.PF)}${tile('PA',s.PA)}${tile('Diff',(s.diff>=0?'+':'')+s.diff)}${tile('Streak',s.streak)}</div>
+  </div>`
 }
 
 /* ---- build the deck ---- */
@@ -325,8 +350,7 @@ function buildDeck(){
     </div>
     <div class="grid">
       <div class="leftcol"><div class="lbl">Season tower · wins ↑ · losses ↓ · opponent colour</div>${towerCol(abbr,I,soft)}</div>
-      ${panel(abbr,I,soft)}
-      ${rosterCol(abbr,I,soft)}
+      <div class="rightcol">${rosterCol(abbr,I,soft)}${panel(abbr,I,soft)}</div>
     </div>`
   const slide=el('div','slide'); slide.appendChild(card); track.appendChild(slide)
  })
@@ -380,6 +404,10 @@ $('posbtn').onclick=e=>{ e.stopPropagation(); toggle(menu) }
 $('kbdbtn').onclick=e=>{ e.stopPropagation(); toggle(kbd) }
 document.addEventListener('click',e=>{ if(!e.target.closest('.pop')&&!e.target.closest('#posbtn')&&!e.target.closest('#kbdbtn')) closePops() })
 
+/* roster category tabs (global — one delegated handler for all cards) */
+document.documentElement.setAttribute('data-rtab','offense')
+track.addEventListener('click',e=>{ const t=e.target.closest('.rtab'); if(t) document.documentElement.setAttribute('data-rtab', t.dataset.tab) })
+
 /* fullscreen */
 function toggleFs(){ const d=document; if(d.fullscreenElement){ d.exitFullscreen&&d.exitFullscreen() } else { d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen() } }
 $('fs').onclick=toggleFs
@@ -403,13 +431,11 @@ const wk=$('wk')
 for(let w=MAXW; w>=1; w--){ const o=document.createElement('option'); o.value=w; o.textContent=w>=MAXW?'Full':('Wk '+w); wk.appendChild(o) }
 wk.value=MAXW
 function rebuild(week){
-  const cur=ranked[idx]                 // keep the same team across the reorder
-  computeSeason(week); buildDeck(); buildMenu()
-  idx=Math.max(0, ranked.indexOf(cur)); render()
+  computeStats(week); buildDeck(); buildMenu(); render()   // frozen order — stay on the current card
 }
 wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }
 
-computeSeason(MAXW)
+computeStats(MAXW); freezeRanking()    // ranking + seeds frozen from the full season
 buildDeck(); buildMenu()
 idx=idxFromHash()
 render()
