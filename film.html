@@ -57,6 +57,8 @@
   .tw-s{font-variant-numeric:tabular-nums;font-size:.9em;white-space:nowrap;flex:0 0 auto;margin-left:auto;}
   .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
   .tw-c.bye{border:1px dashed rgba(128,128,128,.5);opacity:.5;}
+  .tw-c.up{opacity:.92;}
+  .tw-gap{height:calc(var(--ch)*.55);}
   /* per-game point-differential bar: wins to the right of the tower, losses to the left */
   .tw-bar{grid-row:1;min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;}
   .tw-bar.right{grid-column:3;justify-content:flex-start;}
@@ -143,7 +145,7 @@
     <button id="prev" title="Previous (←)">‹</button>
     <button class="play" id="play" title="Play / pause (space)">▶</button>
     <button id="next" title="Next (→)">›</button>
-    <select id="wk" class="wksel" title="Match week — weeks after this are simulated"></select>
+    <select id="wk" class="wksel" title="Match week — weeks after this are shown as still to play"></select>
     <button class="pos" id="posbtn" title="Jump to team" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 32</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
     <button id="fs" title="Fullscreen (F)">⛶</button>
     <button id="kbdbtn" title="Keyboard shortcuts">⌨</button>
@@ -180,39 +182,16 @@ const POS_ORDER=['QB','RB','FB','WR','TE','T','OT','LT','RT','G','OG','LG','RG',
 const posRank=p=>{const i=POS_ORDER.indexOf(p);return i<0?99:i}
 const UNITS=[['offense','Offense'],['defense','Defense'],['specialTeam','Special Teams'],['injuredReserveOrOut','Reserve / Out']]
 
-const MAXW=18, SEED=20250809
-// tower's seeded engine (FNV-1a hash + mulberry32), used to simulate not-yet-played games
-const hashStr=s=>{ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619) } return h>>>0 }
-const mulberry32=a=>()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296 }
-const infer=(us,them)=>us>them?'W':us<them?'L':'T'
-
-let curWeek=MAXW, RES={}
-const resOf=(abbr,w)=>RES[abbr+':'+w]||null
-
-// Weeks ≤ week use the real 2025 result; later weeks are simulated with the tower's
-// engine (same scoring model, deterministic per game, both sides consistent).
-function buildResults(week){
-  const R={}, done=new Set()
-  for(const ab of Object.keys(TEAMS)){
-    for(const g of TEAMS[ab].games){
-      const k=ab+':'+g.w
-      if(g.w<=week){ const real=RESULTS[k]; if(real) R[k]={...real}; continue }
-      const pair=[ab,g.opp].sort(), id=g.w+'|'+pair.join('|'); if(done.has(id)) continue; done.add(id)
-      const rnd=mulberry32(hashStr(id+':'+SEED))
-      let a,b
-      if(rnd()<0.03){ a=b=17+Math.floor(rnd()*11) }
-      else { const win=rnd()<0.5, hi=17+Math.floor(rnd()*21); let lo=6+Math.floor(rnd()*Math.max(1,hi-9)); if(lo>=hi) lo=hi-3; a=win?hi:lo; b=win?lo:hi }
-      R[pair[0]+':'+g.w]={us:a,them:b,res:infer(a,b),sim:true}
-      R[pair[1]+':'+g.w]={us:b,them:a,res:infer(b,a),sim:true}
-    }
-  }
-  return R
-}
+const MAXW=18
+let curWeek=MAXW
+// "Through week X" model, exactly like the Season Tower: weeks after X are still to play
+// (rendered as upcoming tower cells) and do not count toward standings. No simulation.
+const resOf=(abbr,w)=> (w<=curWeek ? (RESULTS[abbr+':'+w]||null) : null)
 
 /* ---- standings + ranking + playoff seeds, recomputed per selected week ---- */
 let stat={}, ranked=[], seed={}
 function computeSeason(week){
-  curWeek=week; RES=buildResults(week); stat={}
+  curWeek=week; stat={}
   for(const abbr in TEAMS){
     const t=TEAMS[abbr]
     const st={W:0,L:0,T:0,PF:0,PA:0,played:0,home:{W:0,L:0,T:0},away:{W:0,L:0,T:0},div:{W:0,L:0,T:0}}
@@ -252,6 +231,10 @@ function twScore(r){ const w=r.us>r.them
   return `<b style="${w?'':'opacity:.6;font-weight:700'}">${r.us}</b><i>–</i><b style="${w?'opacity:.6;font-weight:700':''}">${r.them}</b>` }
 function towerCell(abbr,ty,g,I,soft,maxDiff){
   if(ty==='bye') return `<div class="tw-row"><div class="tw-c bye" style="color:${I}" title="Week ${g.w} · Bye"><span class="tw-wk">${g.w}</span><span class="tw-o">BYE</span></div></div>`
+  if(ty==='up'){ // still-to-play game — tower "upcoming" style: white cell, opponent-colour text
+    const o2=TEAMS[g.opp], op2=(o2&&o2.primary)||'#8A8F98', at2=g.ha==='A'?'<span class="at">@</span>':''
+    return `<div class="tw-row"><div class="tw-c up" style="background:#ffffff;color:${op2};border:1px solid ${mix(op2,'#ffffff',.55)}" title="Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · to play"><span class="tw-wk">${g.w}</span><span class="tw-o">${at2}${g.opp}</span><span class="tw-s" style="opacity:.4">–</span></div></div>`
+  }
   const r=resOf(abbr,g.w), o=TEAMS[g.opp], op=(o&&o.primary)||'#8A8F98', diff=r.us-r.them
   let bg,color,bd
   if(ty==='win'){ bg=op; color=ink(op); bd='1px solid rgba(0,0,0,.18)' }
@@ -273,17 +256,21 @@ function towerCell(abbr,ty,g,I,soft,maxDiff){
 // (postseason) buckets naturally into wins/losses, so the slot is future-proof.
 function towerCol(abbr,I,soft){
   const t=TEAMS[abbr]
-  const wins=[],losses=[],ties=[]; const wk=new Set(); let maxDiff=1
-  for(const g of t.games){ if(g.w<=18) wk.add(g.w); const r=resOf(abbr,g.w); if(!r) continue
+  const wins=[],losses=[],ties=[],upc=[]; const wk=new Set(); let maxDiff=1
+  for(const g of t.games){ if(g.w<=18) wk.add(g.w); const r=resOf(abbr,g.w)
+    if(!r){ upc.push(g); continue }                      // week > selected -> to play
     maxDiff=Math.max(maxDiff,Math.abs(r.us-r.them))
     if(r.res==='W')wins.push(g); else if(r.res==='L')losses.push(g); else ties.push(g) }
   let bye=null; for(let w=1;w<=18;w++){ if(!wk.has(w)){ bye=w; break } }
   const above=[...wins.map(g=>['win',g]),...ties.map(g=>['tie',g])].sort((a,b)=>b[1].w-a[1].w)
   const below=[...losses].sort((a,b)=>a.w-b.w)
-  let up = bye? towerCell(abbr,'bye',{w:bye},I,soft,maxDiff) : ''
-  above.forEach(([ty,g])=>up+=towerCell(abbr,ty,g,I,soft,maxDiff))
+  // ceiling: to-play games + the bye, latest week on top (tower "upcoming" block)
+  const ceil=[...upc.map(g=>['up',g]), ...(bye?[['bye',{w:bye}]]:[])].sort((a,b)=>b[1].w-a[1].w)
+  let top=''; ceil.forEach(([ty,g])=>top+=towerCell(abbr,ty,g,I,soft,maxDiff))
+  let play=''; above.forEach(([ty,g])=>play+=towerCell(abbr,ty,g,I,soft,maxDiff))
+  const gap=(upc.length&&play)?'<div class="tw-gap"></div>':''   // separate upcoming from the played tower
   let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft,maxDiff))
-  return `<div class="tower"><div class="tw-z">${up}</div><div class="tw-base"></div><div class="tw-z">${dn}</div></div>`
+  return `<div class="tower"><div class="tw-z">${top}${gap}${play}</div><div class="tw-base"></div><div class="tw-z">${dn}</div></div>`
 }
 function rosterCol(abbr,I,soft){
   const R=ROSTERS[abbr]
@@ -329,7 +316,7 @@ function buildDeck(){
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
-        <div class="tb-sub">NFL · 2025 · ${curWeek>=MAXW?'Season Film':'Through Wk '+curWeek+' · rest simulated'} · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
+        <div class="tb-sub">NFL · 2025 · ${curWeek>=MAXW?'Season Film':'Through Wk '+curWeek} · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
         <span class="tb-rankbig"><small>#</small><b>${idx+1}</b></span>
