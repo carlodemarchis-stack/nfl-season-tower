@@ -43,18 +43,24 @@
   .tb-rec b{font-size:27px;}
   .tb-rec .pf{font-size:11px;opacity:.72;font-weight:700;letter-spacing:.2px;}
   /* body grid: matches | roster | season panel */
-  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(210px,250px) minmax(440px,600px) minmax(196px,238px);gap:30px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(290px,352px) minmax(400px,560px) minmax(178px,216px);gap:28px;justify-content:center;padding:18px 32px 96px;flex:1;min-height:0;align-items:start;}
   .leftcol{display:flex;flex-direction:column;gap:16px;min-width:0;max-height:100%;}
   .lbl{font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;opacity:.6;padding:0 2px 6px;white-space:nowrap;}
   /* per-team tower: wins stack up (opponent colour), losses hang below the baseline */
   .tower{display:flex;flex-direction:column;justify-content:center;flex:1;min-height:0;--ch:clamp(15px,calc((100vh - 250px)/18),30px);}
   .tw-z{display:flex;flex-direction:column;}
-  .tw-c{height:var(--ch);min-height:var(--ch);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;border-radius:5px;margin-bottom:2px;font-weight:800;overflow:hidden;box-sizing:border-box;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
-  .tw-c .tw-o{letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .tw-c .tw-o .at{opacity:.62;font-weight:700;font-size:.82em;margin-right:1px;}
-  .tw-c .tw-s{font-variant-numeric:tabular-nums;font-size:.9em;white-space:nowrap;flex:0 0 auto;}
-  .tw-c .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
+  .tw-row{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+  .tw-c{flex:0 0 118px;width:118px;height:var(--ch);min-height:var(--ch);display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;box-sizing:border-box;font-weight:800;overflow:hidden;font-size:clamp(9px,calc(var(--ch)*.44),13px);line-height:1;}
+  .tw-wk{font-size:.76em;opacity:.6;font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:12px;}
+  .tw-o{letter-spacing:.2px;white-space:nowrap;flex:0 0 auto;}
+  .tw-o .at{opacity:.62;font-weight:700;font-size:.82em;margin-right:1px;}
+  .tw-s{font-variant-numeric:tabular-nums;font-size:.9em;white-space:nowrap;flex:0 0 auto;}
+  .tw-s i{font-style:normal;opacity:.5;padding:0 1px;}
   .tw-c.bye{border:1px dashed rgba(128,128,128,.5);opacity:.5;}
+  /* per-game point-differential bar, right of the tower, in the opponent's colour */
+  .tw-bar{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:5px;}
+  .tw-bar i{height:calc(var(--ch)*.52);min-height:6px;border-radius:2px;flex:0 0 auto;}
+  .tw-bar b{font-size:8.5px;font-weight:800;opacity:.72;font-variant-numeric:tabular-nums;flex:0 0 auto;}
   .tw-base{height:0;border-top:2px dashed rgba(128,128,128,.55);margin:5px 2px;}
   /* roster (centre, scrollable) */
   .roster{display:flex;flex-direction:column;gap:1px;min-width:0;max-height:100%;overflow-y:auto;padding-right:4px;}
@@ -75,18 +81,6 @@
   .srow{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:700;}
   .srow .sl{opacity:.72;letter-spacing:.2px;}
   .srow .sv{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
-  /* margin-by-game column chart: wins up / losses down, bar in opponent colour */
-  .mchart{display:flex;flex-direction:column;gap:8px;}
-  .cbars{position:relative;display:flex;align-items:stretch;gap:3px;height:250px;}
-  .cbar{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
-  .cbar .up{flex:1;display:flex;align-items:flex-end;justify-content:center;}
-  .cbar .dn{flex:1;display:flex;align-items:flex-start;justify-content:center;}
-  .cbar .up i,.cbar .dn i{display:block;width:100%;}
-  .cbar .up i{border-radius:2px 2px 0 0;}
-  .cbar .dn i{border-radius:0 0 2px 2px;}
-  .cbar .lbl{height:30px;display:flex;align-items:center;justify-content:center;}
-  .cbar .lbl b{writing-mode:vertical-rl;transform:rotate(180deg);font-size:8px;font-weight:800;letter-spacing:.4px;opacity:.78;line-height:1;font-variant-numeric:tabular-nums;}
-  .mband{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:30px;border-top:1px dashed rgba(128,128,128,.5);border-bottom:1px dashed rgba(128,128,128,.5);pointer-events:none;z-index:0;}
   /* bottom control bar (teal takeover) */
   .bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;
        background:rgba(20,22,26,.92);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:9px 12px;
@@ -224,31 +218,34 @@ const rec=s=>`${s.W}-${s.L}${s.T?'-'+s.T:''}`
 /* ---- card pieces ---- */
 function twScore(r){ const w=r.us>r.them
   return `<b style="${w?'':'opacity:.6;font-weight:700'}">${r.us}</b><i>–</i><b style="${w?'opacity:.6;font-weight:700':''}">${r.them}</b>` }
-function towerCell(abbr,ty,g,I,soft){
-  if(ty==='bye') return `<div class="tw-c bye" style="color:${I}" title="Week ${g.w} · Bye"><span class="tw-o">BYE</span><span class="tw-s">Wk ${g.w}</span></div>`
-  const r=resOf(abbr,g.w), o=TEAMS[g.opp], op=(o&&o.primary)||'#8A8F98'
+function towerCell(abbr,ty,g,I,soft,maxDiff){
+  if(ty==='bye') return `<div class="tw-row"><div class="tw-c bye" style="color:${I}" title="Week ${g.w} · Bye"><span class="tw-wk">${g.w}</span><span class="tw-o">BYE</span></div></div>`
+  const r=resOf(abbr,g.w), o=TEAMS[g.opp], op=(o&&o.primary)||'#8A8F98', diff=r.us-r.them
   let bg,color,bd
   if(ty==='win'){ bg=op; color=ink(op); bd='1px solid rgba(0,0,0,.18)' }
   else if(ty==='loss'){ bg='#ffffff'; color=op; bd='1.6px solid '+RED }
   else { bg=mix(op,'#ffffff',.18); color=ink(bg); bd='1px solid rgba(0,0,0,.12)' }
   const at=g.ha==='A'?'<span class="at">@</span>':''
-  const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.res} ${r.us}-${r.them}`
-  return `<div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div>`
+  const barW=Math.max(3,Math.round(Math.abs(diff)/maxDiff*120))
+  const sign=diff>0?'+':diff<0?'−':'±'
+  const title=`Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.res} ${r.us}-${r.them} (${sign}${Math.abs(diff)})`
+  return `<div class="tw-row"><div class="tw-c" style="background:${bg};color:${color};border:${bd};box-shadow:0 0 0 1px rgba(${soft},.12)" title="${title}"><span class="tw-wk">${g.w}</span><span class="tw-o">${at}${g.opp}</span><span class="tw-s">${twScore(r)}</span></div><span class="tw-bar" title="${sign}${Math.abs(diff)} pts"><i style="width:${barW}px;background:${op};box-shadow:0 0 0 1px rgba(${soft},.16)"></i><b style="color:${I}">${sign}${Math.abs(diff)}</b></span></div>`
 }
 // One team's tower: wins+ties above the baseline (calendar order, latest on top),
 // losses below (earliest nearest the baseline), bye at the ceiling. Any week>18 game
 // (postseason) buckets naturally into wins/losses, so the slot is future-proof.
 function towerCol(abbr,I,soft){
   const t=TEAMS[abbr]
-  const wins=[],losses=[],ties=[]; const wk=new Set()
+  const wins=[],losses=[],ties=[]; const wk=new Set(); let maxDiff=1
   for(const g of t.games){ if(g.w<=18) wk.add(g.w); const r=resOf(abbr,g.w); if(!r) continue
+    maxDiff=Math.max(maxDiff,Math.abs(r.us-r.them))
     if(r.res==='W')wins.push(g); else if(r.res==='L')losses.push(g); else ties.push(g) }
   let bye=null; for(let w=1;w<=18;w++){ if(!wk.has(w)){ bye=w; break } }
   const above=[...wins.map(g=>['win',g]),...ties.map(g=>['tie',g])].sort((a,b)=>b[1].w-a[1].w)
   const below=[...losses].sort((a,b)=>a.w-b.w)
-  let up = bye? towerCell(abbr,'bye',{w:bye},I,soft) : ''
-  above.forEach(([ty,g])=>up+=towerCell(abbr,ty,g,I,soft))
-  let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft))
+  let up = bye? towerCell(abbr,'bye',{w:bye},I,soft,maxDiff) : ''
+  above.forEach(([ty,g])=>up+=towerCell(abbr,ty,g,I,soft,maxDiff))
+  let dn=''; below.forEach(g=>dn+=towerCell(abbr,'loss',g,I,soft,maxDiff))
   return `<div class="tower"><div class="tw-z">${up}</div><div class="tw-base"></div><div class="tw-z">${dn}</div></div>`
 }
 function rosterCol(abbr,I,soft){
@@ -264,22 +261,6 @@ function rosterCol(abbr,I,soft){
   })
   return `<div class="roster">${h}</div>`
 }
-// Column chart of point differential per played game (calendar order): wins positive/up,
-// losses negative/down, each bar in the opponent's colour, opponent code on the axis.
-function marginChart(abbr,I,soft){
-  const games=TEAMS[abbr].games.filter(g=>resOf(abbr,g.w)).sort((a,b)=>a.w-b.w)
-  const rows=games.map(g=>{ const r=resOf(abbr,g.w); return {g,r,diff:r.us-r.them} })
-  const max=Math.max(1,...rows.map(d=>Math.abs(d.diff))), H=95
-  const bars=rows.map(({g,r,diff})=>{
-    const op=(TEAMS[g.opp]&&TEAMS[g.opp].primary)||'#8A8F98'
-    const h=Math.max(3,Math.round(Math.abs(diff)/max*H))
-    const ring=`box-shadow:0 0 0 1px rgba(${soft},.14)`
-    const up = diff>=0 ? `<i style="height:${diff===0?3:h}px;background:${op};${ring}"></i>` : ''
-    const dn = diff<0  ? `<i style="height:${h}px;background:${op};${ring}"></i>` : ''
-    return `<span class="cbar" title="Wk ${g.w} · ${g.ha==='A'?'@ ':'vs '}${g.oppFull} · ${r.us}-${r.them} (${diff>=0?'+':''}${diff})"><span class="up">${up}</span><span class="lbl"><b style="color:${I}">${g.opp}</b></span><span class="dn">${dn}</span></span>`
-  }).join('')
-  return `<div class="mchart"><div class="ph">Margin by game · wins ↑ · losses ↓ · opponent colour</div><div class="cbars"><div class="mband"></div>${bars}</div></div>`
-}
 function panel(abbr,I,soft){
   const s=stat[abbr]
   const srow=(l,v)=>`<div class="srow" style="background:rgba(${soft},.08)"><span class="sl">${l}</span><span class="sv">${v}</span></div>`
@@ -288,8 +269,7 @@ function panel(abbr,I,soft){
       ${srow('Home',rec(s.home))}${srow('Away',rec(s.away))}${srow('Division',rec(s.div))}
       ${srow('Points for',s.PF)}${srow('Points against',s.PA)}${srow('Point diff',(s.diff>=0?'+':'')+s.diff)}
       ${srow('Longest win streak',s.streak)}
-    </div>
-    ${marginChart(abbr,I,soft)}</div>`
+    </div></div>`
 }
 
 /* ---- build the deck ---- */
