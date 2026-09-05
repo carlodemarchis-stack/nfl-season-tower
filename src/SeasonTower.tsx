@@ -351,7 +351,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const orient = orientProp === 'towers' ? 'v' : orientProp === 'rows' ? 'h' : ((S.cw || 1280) < 820 ? 'h' : 'v')
     const base: Dict = {
       subtitle: seasonYr === '2026'
-        ? 'The 2026 season as it unfolds — wins build the block up, losses hang below the line. Games hang from the ceiling until they’re played; drag the week slider as results come in.'
+        ? ''
         : `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
@@ -649,7 +649,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </>
               )}
             </div>
-            <div style={{ fontSize: '12px', color: '#727781', marginTop: '3px', maxWidth: '640px' }}>{v.subtitle}</div>
+            {v.subtitle && <div style={{ fontSize: '12px', color: '#727781', marginTop: '3px', maxWidth: '640px' }}>{v.subtitle}</div>}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '5px 11px 5px 9px', border: '1px solid #D7DAE0', borderRadius: '8px', background: '#fff' }}>
