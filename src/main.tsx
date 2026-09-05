@@ -17,7 +17,6 @@ createRoot(document.getElementById('root')!).render(
       scoreLabels={true}
       showByes={true}
       editScores={false}
-      seed={20260913}
     />
   </StrictMode>,
 )

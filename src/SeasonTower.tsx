@@ -26,13 +26,13 @@ interface Props {
   scoreLabels: boolean
   showByes: boolean
   editScores: boolean
-  seed: number
 }
 
 type Dict = Record<string, any>
 
 interface State {
   TEAMS26: Dict | null
+  RES26: Dict | null
   TEAMS25: Dict | null
   RES25: Dict | null
   MAX25: number
@@ -45,7 +45,6 @@ interface State {
   cw: number
   ch: number
   pop: Dict | null
-  seed: number
   throughWeek: number | null
   userSort: any
   playing: boolean
@@ -70,8 +69,8 @@ export class SeasonTower extends React.Component<Props, State> {
   _timer: any = null
 
   state: State = {
-    TEAMS26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
-    DET24: null, results: {}, cw: 1280, ch: 600, pop: null, seed: 20260913, throughWeek: null,
+    TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
+    DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
     rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false,
     groupBy: 'div', rankBy: 'wins',
@@ -80,13 +79,14 @@ export class SeasonTower extends React.Component<Props, State> {
   componentDidMount() {
     Promise.all([
       import('./data/schedule-2026.js').then(m => ({ T26: m.TEAMS })).catch(() => ({ T26: null })),
+      import('./data/results-2026.js').then(m => ({ R26: m.RESULTS2026 })).catch(() => ({ R26: {} })),
       import('./data/schedule-2025.js').then(m => ({ T25: m.TEAMS2025, R25: m.RESULTS2025, MAX25: m.MAXWEEK2025 })),
       import('./data/details-2025.js').then(m => ({ DET: m.DETAILS2025 })).catch(() => ({ DET: {} })),
       import('./data/rosters-2025.js').then(m => ({ R: m.ROSTERS2025 })).catch(() => ({ R: {} })),
       import('./data/schedule-2024.js').then(m => ({ T24: m.TEAMS2024, R24: m.RESULTS2024, MAX24: m.MAXWEEK2024 })).catch(() => ({ T24: null, R24: {}, MAX24: 18 })),
       import('./data/details-2024.js').then(m => ({ DET: m.DETAILS2024 })).catch(() => ({ DET: {} })),
-    ]).then(([a, b, c, d, e, f]: any[]) => {
-      this.setState({ TEAMS26: a.T26, TEAMS25: b.T25, RES25: b.R25, MAX25: b.MAX25, DET25: c.DET, ROST: d.R, TEAMS24: e.T24, RES24: e.R24, MAX24: e.MAX24, DET24: f.DET }, () => {
+    ]).then(([a, a2, b, c, d, e, f]: any[]) => {
+      this.setState({ TEAMS26: a.T26, RES26: a2.R26, TEAMS25: b.T25, RES25: b.R25, MAX25: b.MAX25, DET25: c.DET, ROST: d.R, TEAMS24: e.T24, RES24: e.R24, MAX24: e.MAX24, DET24: f.DET }, () => {
         // default the week to the latest available for the active season
         this.buildThrough(this.defaultWeek())
       })
@@ -118,39 +118,20 @@ export class SeasonTower extends React.Component<Props, State> {
   season() { const s = this.state.seasonSel || this.props.season || '2025'; return (s === '2024' || s === '2026') ? s : '2025' }
   activeTeams() { const s = this.season(); return s === '2026' ? this.state.TEAMS26 : s === '2024' ? this.state.TEAMS24 : this.state.TEAMS25 }
   maxWeek() { const s = this.season(); return s === '2026' ? 18 : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
-  defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
+  defaultWeek() { return this.maxWeek() }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
   componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
 
-  hashStr(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
-  mulberry32(a: number) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
-
-  // Reveal / generate results through week n.
-  //  2025 / 2024 -> real final scores  |  2026 -> deterministically simulated from the seed
+  // Reveal real results through week n. Each season fills in as games are played;
+  // any game past week n — or without a result yet — renders as upcoming.
   buildThrough(n: number) {
     const T = this.activeTeams(); if (!T) return
     n = Math.max(0, Math.min(this.maxWeek(), n))
     const r: Dict = {}
-    if (this.season() === '2025' || this.season() === '2024') {
-      const R = (this.season() === '2024' ? this.state.RES24 : this.state.RES25) || {}
-      for (const ab of Object.keys(T)) {
-        for (const g of T[ab].games) {
-          if (g.w > n) continue; const k = this.keyOf(ab, g.w); const real = R[k]; if (real) r[k] = { ...real }
-        }
-      }
-    } else {
-      const seed = this.props.seed || 20260913; const done = new Set<string>()
-      for (const ab of Object.keys(T)) {
-        for (const g of T[ab].games) {
-          if (g.w > n) continue
-          const pair = [ab, g.opp].sort(); const id = g.w + '|' + pair.join('|'); if (done.has(id)) continue; done.add(id)
-          const rnd = this.mulberry32(this.hashStr(id + ':' + seed))
-          let a, b; if (rnd() < 0.03) { a = b = 17 + Math.floor(rnd() * 11) }
-          else { const win = rnd() < 0.5; const hi = 17 + Math.floor(rnd() * 21); let lo = 6 + Math.floor(rnd() * Math.max(1, hi - 9)); if (lo >= hi) lo = hi - 3; a = win ? hi : lo; b = win ? lo : hi }
-          const k0 = this.keyOf(pair[0], g.w), k1 = this.keyOf(pair[1], g.w)
-          r[k0] = { us: a, them: b, res: this.infer(a, b), hasU: true, hasT: true }
-          r[k1] = { us: b, them: a, res: this.infer(b, a), hasU: true, hasT: true }
-        }
+    const R = (this.season() === '2024' ? this.state.RES24 : this.season() === '2026' ? this.state.RES26 : this.state.RES25) || {}
+    for (const ab of Object.keys(T)) {
+      for (const g of T[ab].games) {
+        if (g.w > n) continue; const k = this.keyOf(ab, g.w); const real = R[k]; if (real) r[k] = { ...real }
       }
     }
     this.setState({ results: r, throughWeek: n, pop: null })
@@ -188,10 +169,8 @@ export class SeasonTower extends React.Component<Props, State> {
     return m
   }
   componentDidUpdate(pp: Props, _ps: State, snap: Dict | null) {
-    // re-seed when the season prop changes
+    // rebuild when the season prop changes
     if (pp && pp.season !== this.props.season) { this.setState({ seasonSel: null }, () => this.buildThrough(this.defaultWeek())); return }
-    // re-generate the 2026 sim when the seed prop changes
-    if (pp && pp.seed !== this.props.seed) { this.buildThrough(this.state.throughWeek == null ? this.defaultWeek() : this.state.throughWeek); return }
     if (!snap) return; const root = this.chartRef.current; if (!root) return
     root.querySelectorAll('[data-team]').forEach(el => {
       const ab = el.getAttribute('data-team')!; const prev = snap[ab]; if (!prev) return
@@ -371,9 +350,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
     const orient = orientProp === 'towers' ? 'v' : orientProp === 'rows' ? 'h' : ((S.cw || 1280) < 820 ? 'h' : 'v')
     const base: Dict = {
-      subtitle: seasonYr === '2026'
-        ? 'Simulated 2026 season — fixtures are real, scores are generated. Drag the week slider to replay week by week.'
-        : `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
+      subtitle: `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
