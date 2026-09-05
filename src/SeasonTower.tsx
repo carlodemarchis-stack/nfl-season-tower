@@ -350,7 +350,9 @@ export class SeasonTower extends React.Component<Props, State> {
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
     const orient = orientProp === 'towers' ? 'v' : orientProp === 'rows' ? 'h' : ((S.cw || 1280) < 820 ? 'h' : 'v')
     const base: Dict = {
-      subtitle: `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
+      subtitle: seasonYr === '2026'
+        ? 'The 2026 season as it unfolds — wins build the block up, losses hang below the line. Games hang from the ceiling until they’re played; drag the week slider as results come in.'
+        : `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
