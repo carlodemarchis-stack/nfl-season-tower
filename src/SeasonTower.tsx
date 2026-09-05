@@ -57,6 +57,7 @@ interface State {
   rPosOpen: boolean
   seasonSel: string | null
   seasonOpen: boolean
+  helpOpen: boolean
   groupBy?: 'league' | 'conf' | 'div'
   rankBy?: 'pct' | 'wins'
 }
@@ -72,7 +73,7 @@ export class SeasonTower extends React.Component<Props, State> {
     TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
-    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false,
+    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false,
     groupBy: 'div', rankBy: 'wins',
   }
 
@@ -153,14 +154,15 @@ export class SeasonTower extends React.Component<Props, State> {
     this.buildThrough(cur + delta) // buildThrough clamps to [0, maxWeek]
   }
   onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-    // Don't hijack arrows while typing in a field or while a modal is open.
+    if (e.key === 'Escape') { if (this.state.helpOpen) this.setState({ helpOpen: false }); return }
+    // Don't hijack keys while typing in a field or while a modal is open.
     const t = e.target as HTMLElement | null
     const tag = t && t.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return
     if (this.state.pop || this.state.teamPop) return
-    e.preventDefault()
-    this.stepWeek(e.key === 'ArrowRight' ? 1 : -1)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); this.stepWeek(e.key === 'ArrowRight' ? 1 : -1); return }
+    if (e.key === ' ') { e.preventDefault(); this.togglePlay(); return }
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); this.toggleFullscreen(); return }
   }
 
   getSnapshotBeforeUpdate() {
@@ -330,7 +332,7 @@ export class SeasonTower extends React.Component<Props, State> {
       }
     })
   }
-  reset() { if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ results: {}, pop: null, throughWeek: 0, playing: false }) }
+  toggleFullscreen() { const d: any = document; if (d.fullscreenElement) { d.exitFullscreen && d.exitFullscreen() } else { const el: any = d.documentElement; el.requestFullscreen && el.requestFullscreen() } }
 
   renderVals(): Dict {
     const S = this.state, T = this.activeTeams()
@@ -358,7 +360,10 @@ export class SeasonTower extends React.Component<Props, State> {
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
       grpLeague: () => this.setState({ groupBy: 'league' }), grpConf: () => this.setState({ groupBy: 'conf' }), grpDiv: () => this.setState({ groupBy: 'div' }),
       rankPct: () => this.setState({ rankBy: 'pct' }), rankWins: () => this.setState({ rankBy: 'wins' }),
-      onReset: () => this.reset(), onPlay: () => this.togglePlay(),
+      onPlay: () => this.togglePlay(),
+      onFullscreen: () => this.toggleFullscreen(),
+      helpOpen: S.helpOpen,
+      onToggleHelp: () => this.setState(s => ({ helpOpen: !s.helpOpen })),
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
@@ -626,6 +631,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const v = this.renderVals()
     const mStop = (e: React.MouseEvent) => e.stopPropagation()
     const stepBtn = (disabled: boolean): React.CSSProperties => ({ width: '20px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#22262d', fontSize: '16px', fontWeight: 700, lineHeight: 1, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.28 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit' })
+    const iconBtn: React.CSSProperties = { width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #D7DAE0', background: '#fff', color: '#727781', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit', lineHeight: 1 }
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F5F6F4' }}>
 
@@ -676,8 +682,25 @@ export class SeasonTower extends React.Component<Props, State> {
                 <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
               </div>
             </div>
-            <button onClick={v.onReset} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #D7DAE0', background: '#fff', color: '#727781', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Reset</button>
-            <a href="./film.html" title="Open the Season Film — one card per team" style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #0e8f86', background: '#0e8f86', color: '#fff', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}>Season Film ↗</a>
+            <button onClick={v.onFullscreen} title="Fullscreen (F)" aria-label="Fullscreen" style={iconBtn}>⛶</button>
+            <div style={{ position: 'relative' }}>
+              <button onClick={v.onToggleHelp} title="Help & keyboard shortcuts" aria-label="Help" style={{ ...iconBtn, ...(v.helpOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>?</button>
+              {v.helpOpen && (
+                <>
+                  <div onClick={v.onToggleHelp} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80, width: '272px', background: '#fff', border: '1px solid #E4E7EB', borderRadius: '12px', boxShadow: '0 14px 36px rgba(20,22,28,.17)', padding: '13px 15px', textAlign: 'left' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#15181d', marginBottom: '8px' }}>How to read the tower</div>
+                    <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
+                    <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
+                    {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Enter a score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0', fontSize: '11.5px', color: '#4b5058' }}>
+                        <span>{k}</span><kbd style={{ fontFamily: 'inherit', fontSize: '10.5px', fontWeight: 800, color: '#22262d', background: '#F1F3F5', border: '1px solid #E1E4E8', borderRadius: '5px', padding: '1px 6px' }}>{key}</kbd>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -926,6 +949,11 @@ export class SeasonTower extends React.Component<Props, State> {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ---------- footer ---------- */}
+        <div style={{ flex: '0 0 auto', padding: '8px 18px 10px', borderTop: '1px solid #E8EAED', fontSize: '11px', color: '#9298a1', textAlign: 'center' }}>
+          Produced with passion by <a href="https://aguywithascarf.substack.com/" target="_blank" rel="noopener" style={{ color: '#727781', fontWeight: 700, textDecoration: 'none' }}>A guy with a scarf</a> (Carlo De Marchis).
         </div>
       </div>
     )
