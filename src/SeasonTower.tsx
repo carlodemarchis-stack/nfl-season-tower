@@ -119,7 +119,7 @@ export class SeasonTower extends React.Component<Props, State> {
   season() { const s = this.state.seasonSel || this.props.season || '2025'; return (s === '2024' || s === '2026') ? s : '2025' }
   activeTeams() { const s = this.season(); return s === '2026' ? this.state.TEAMS26 : s === '2024' ? this.state.TEAMS24 : this.state.TEAMS25 }
   maxWeek() { const s = this.season(); return s === '2026' ? 18 : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
-  defaultWeek() { return this.maxWeek() }
+  defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
   componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
 
