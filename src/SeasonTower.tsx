@@ -118,7 +118,11 @@ export class SeasonTower extends React.Component<Props, State> {
 
   season() { const s = this.state.seasonSel || this.props.season || '2025'; return (s === '2024' || s === '2026') ? s : '2025' }
   activeTeams() { const s = this.season(); return s === '2026' ? this.state.TEAMS26 : s === '2024' ? this.state.TEAMS24 : this.state.TEAMS25 }
-  maxWeek() { const s = this.season(); return s === '2026' ? 18 : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
+  // Highest week that actually has results (keys are "ABBR:week"). 0 when none played.
+  playedWeeks(R: Dict | null) { let m = 0; for (const k in (R || {})) { const w = parseInt(k.slice(k.indexOf(':') + 1), 10); if (w > m) m = w } return m }
+  // 2026 is a live season: it only extends as far as results exist, so the week
+  // slider can never be dragged past the last week actually played.
+  maxWeek() { const s = this.season(); return s === '2026' ? this.playedWeeks(this.state.RES26) : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
   defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
   componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
@@ -352,9 +356,6 @@ export class SeasonTower extends React.Component<Props, State> {
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
     const orient = orientProp === 'towers' ? 'v' : orientProp === 'rows' ? 'h' : ((S.cw || 1280) < 820 ? 'h' : 'v')
     const base: Dict = {
-      subtitle: seasonYr === '2026'
-        ? ''
-        : `Real ${seasonYr} results — wins build the block up, losses hang below the line. Drag the week slider to replay the season week by week.`,
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
@@ -367,7 +368,7 @@ export class SeasonTower extends React.Component<Props, State> {
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
-      throughWeek: tw, sliderMax: mx, playLabel: S.playing ? '❘❘' : '▶',
+      throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, playLabel: S.playing ? '❘❘' : '▶',
       weekLabel: tw === 0 ? 'Through: —' : (tw >= mx ? 'Full season' : ('Through Wk ' + tw)),
       resultMode: colorMode !== 'opponent', oppMode: colorMode === 'opponent',
       seasonYr,
@@ -655,17 +656,18 @@ export class SeasonTower extends React.Component<Props, State> {
                 </>
               )}
             </div>
-            {v.subtitle && <div style={{ fontSize: '12px', color: '#727781', marginTop: '3px', maxWidth: '640px' }}>{v.subtitle}</div>}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '5px 11px 5px 9px', border: '1px solid #D7DAE0', borderRadius: '8px', background: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <button onClick={v.onStepBack} disabled={v.stepBackDisabled} title="Previous week (←)" aria-label="Previous week" style={stepBtn(v.stepBackDisabled)}>‹</button>
-                <button onClick={v.onPlay} title="Play / pause" aria-label="Play / pause" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #15181d', background: '#15181d', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{v.playLabel}</button>
+                <button onClick={v.onPlay} disabled={v.nonedPlayed} title={v.nonedPlayed ? 'No games played yet' : 'Play / pause'} aria-label="Play / pause" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #15181d', background: '#15181d', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{v.playLabel}</button>
                 <button onClick={v.onStepFwd} disabled={v.stepFwdDisabled} title="Next week (→)" aria-label="Next week" style={stepBtn(v.stepFwdDisabled)}>›</button>
               </div>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#22262d', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: '78px' }}>{v.weekLabel}</span>
-              <input type="range" min={0} max={v.sliderMax} step={1} value={v.throughWeek} onChange={v.onSlide} style={{ width: '150px', accentColor: '#15181d', cursor: 'pointer' }} />
+              <input type="range" min={0} max={Math.max(1, v.sliderMax)} step={1} value={v.throughWeek} onChange={v.onSlide} disabled={v.nonedPlayed}
+                title={v.nonedPlayed ? 'No games played yet' : 'Drag to replay week by week'}
+                style={{ width: '150px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Group</span>
@@ -712,7 +714,7 @@ export class SeasonTower extends React.Component<Props, State> {
           {v.oppMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Above the line = win · below = loss · faded = still to play</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#F2E4BC', border: '1px solid #E7D39A' }} />Tie</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#EDEFF2', border: '1px solid #E4E7EB' }} />To play</span>}
-          <span style={{ marginLeft: '2px', color: '#9298a1' }}>Press ▶ or drag the week slider to watch the season unfold · click any cell to enter a score.</span>
+          <span style={{ marginLeft: '2px', color: '#9298a1' }}>{v.nonedPlayed ? 'No games played yet — the season fills in week by week.' : 'Press ▶ or drag the week slider to watch the season unfold · click any cell to enter a score.'}</span>
           <span style={{ marginLeft: 'auto', color: '#22262d', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{v.playedStr} · Leader: {v.leaderAbbr} {v.leaderRec}</span>
         </div>
 
