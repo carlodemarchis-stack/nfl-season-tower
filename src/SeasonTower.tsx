@@ -63,6 +63,27 @@ interface State {
   rankBy?: 'pct' | 'wins'
 }
 
+const HASH_SEASONS = ['2024', '2025', '2026']
+const HASH_GROUPS = ['league', 'conf', 'div']
+const HASH_RANKS = ['pct', 'wins']
+
+// #<season>/<group>/<rank>, e.g. #2025/div/wins. Each segment is validated against a known
+// list and anything unrecognised is ignored, so a bad link falls back to defaults rather than
+// silently rendering the wrong season. Segments are order-fixed and week is deliberately NOT
+// encoded: for a finished season defaultWeek() is already the full season, and leaving week
+// out keeps the slider (which fires continuously) from writing to the URL. A future week can
+// be appended as a 4th segment without breaking existing links.
+function readHash(): Partial<State> {
+  const h = (typeof location === 'undefined' ? '' : location.hash).replace(/^#/, '')
+  if (!h) return {}
+  const [season, group, rank] = h.split('/')
+  const out: Partial<State> = {}
+  if (HASH_SEASONS.indexOf(season) >= 0) out.seasonSel = season
+  if (HASH_GROUPS.indexOf(group) >= 0) out.groupBy = group as State['groupBy']
+  if (HASH_RANKS.indexOf(rank) >= 0) out.rankBy = rank as State['rankBy']
+  return out
+}
+
 export class SeasonTower extends React.Component<Props, State> {
   chartRef = React.createRef<HTMLDivElement>()
   _measure!: () => void
@@ -76,6 +97,7 @@ export class SeasonTower extends React.Component<Props, State> {
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
     rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false,
     groupBy: 'div', rankBy: 'wins',
+    ...readHash(),
   }
 
   componentDidMount() {
@@ -127,8 +149,14 @@ export class SeasonTower extends React.Component<Props, State> {
   // a bye is a hole in the schedule, so bye detection must scan the full season.
   scheduleWeeks() { const T = this.activeTeams(); if (!T) return 18; let m = 0; for (const ab in T) for (const g of T[ab].games) { if (g.w > m) m = g.w } return m || 18 }
   maxWeek() { const s = this.season(); return s === '2026' ? this.playedWeeks(this.state.RES26) : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
-  defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
-  pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
+  // maxWeek() is playedWeeks() for the live season, so this is identical to the old
+  // `2026 ? 0` while nothing has been played, and opens on the latest real week thereafter.
+  defaultWeek() { return this.maxWeek() }
+  syncHash() {
+    const h = `#${this.season()}/${this.state.groupBy || 'div'}/${this.state.rankBy || 'wins'}`
+    try { history.replaceState(null, '', h) } catch (e) { /* non-fatal */ }
+  }
+  pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => { this.buildThrough(this.defaultWeek()); this.syncHash() }) }
   componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
 
   // Reveal real results through week n. Each season fills in as games are played;
@@ -366,8 +394,8 @@ export class SeasonTower extends React.Component<Props, State> {
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
-      grpLeague: () => this.setState({ groupBy: 'league' }), grpConf: () => this.setState({ groupBy: 'conf' }), grpDiv: () => this.setState({ groupBy: 'div' }),
-      rankPct: () => this.setState({ rankBy: 'pct' }), rankWins: () => this.setState({ rankBy: 'wins' }),
+      grpLeague: () => this.setState({ groupBy: 'league' }, () => this.syncHash()), grpConf: () => this.setState({ groupBy: 'conf' }, () => this.syncHash()), grpDiv: () => this.setState({ groupBy: 'div' }, () => this.syncHash()),
+      rankPct: () => this.setState({ rankBy: 'pct' }, () => this.syncHash()), rankWins: () => this.setState({ rankBy: 'wins' }, () => this.syncHash()),
       onPlay: () => this.togglePlay(),
       onFullscreen: () => this.toggleFullscreen(),
       helpOpen: S.helpOpen,
