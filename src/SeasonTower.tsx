@@ -58,6 +58,7 @@ interface State {
   seasonSel: string | null
   seasonOpen: boolean
   helpOpen: boolean
+  cogOpen: boolean
   groupBy?: 'league' | 'conf' | 'div'
   rankBy?: 'pct' | 'wins'
 }
@@ -73,7 +74,7 @@ export class SeasonTower extends React.Component<Props, State> {
     TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
-    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false,
+    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false,
     groupBy: 'div', rankBy: 'wins',
   }
 
@@ -158,7 +159,7 @@ export class SeasonTower extends React.Component<Props, State> {
     this.buildThrough(cur + delta) // buildThrough clamps to [0, maxWeek]
   }
   onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (this.state.helpOpen) this.setState({ helpOpen: false }); return }
+    if (e.key === 'Escape') { if (this.state.helpOpen || this.state.cogOpen) this.setState({ helpOpen: false, cogOpen: false }); return }
     // Don't hijack keys while typing in a field or while a modal is open.
     const t = e.target as HTMLElement | null
     const tag = t && t.tagName
@@ -354,7 +355,9 @@ export class SeasonTower extends React.Component<Props, State> {
     const mx = this.maxWeek()
     const seg = (on: boolean) => `padding:7px 11px;border:none;background:${on ? '#15181d' : '#fff'};color:${on ? '#fff' : '#727781'};font-size:12px;font-weight:700;cursor:pointer;`
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
-    const orient = orientProp === 'towers' ? 'v' : orientProp === 'rows' ? 'h' : ((S.cw || 1280) < 820 ? 'h' : 'v')
+    const isNarrow = (S.cw || 1280) < 820
+    // Mobile keeps the same tower layout and scrolls sideways instead of flipping to rows.
+    const orient = orientProp === 'rows' ? 'h' : 'v'
     const base: Dict = {
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
@@ -364,17 +367,19 @@ export class SeasonTower extends React.Component<Props, State> {
       onPlay: () => this.togglePlay(),
       onFullscreen: () => this.toggleFullscreen(),
       helpOpen: S.helpOpen,
-      onToggleHelp: () => this.setState(s => ({ helpOpen: !s.helpOpen })),
+      onToggleHelp: () => this.setState(s => ({ helpOpen: !s.helpOpen, cogOpen: false })),
+      cogOpen: S.cogOpen,
+      onToggleCog: () => this.setState(s => ({ cogOpen: !s.cogOpen, helpOpen: false })),
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
-      throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, playLabel: S.playing ? '❘❘' : '▶',
+      throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, isNarrow, playLabel: S.playing ? '❘❘' : '▶',
       weekLabel: tw === 0 ? 'Through: —' : (tw >= mx ? 'Full season' : ('Through Wk ' + tw)),
       resultMode: colorMode !== 'opponent', oppMode: colorMode === 'opponent',
       seasonYr,
       seasonOpen: S.seasonOpen,
       onToggleSeason: () => this.setState(s => ({ seasonOpen: !s.seasonOpen })),
-      seasonBtnStyle: `display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 9px;border:1px solid ${S.seasonOpen ? '#15181d' : '#E4E7EB'};border-radius:8px;background:${S.seasonOpen ? '#F5F6F4' : '#fff'};color:#15181d;font-size:21px;font-weight:900;letter-spacing:-.3px;cursor:pointer;font-family:inherit;line-height:1.15;transition:border-color .15s,background .15s;`,
+      seasonBtnStyle: `display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 9px;border:1px solid ${S.seasonOpen ? '#15181d' : '#E4E7EB'};border-radius:8px;background:${S.seasonOpen ? '#F5F6F4' : '#fff'};color:#15181d;font-size:${isNarrow ? 15 : 21}px;font-weight:900;letter-spacing:-.3px;cursor:pointer;font-family:inherit;line-height:1.15;transition:border-color .15s,background .15s;`,
       seasonArrowStyle: `font-size:11px;color:#9298a1;display:inline-block;transition:transform .18s;transform:rotate(${S.seasonOpen ? 180 : 0}deg);`,
       seasonList: ([['2026', '2026'], ['2025', '2025'], ['2024', '2024']] as [string, string][]).map(([y, l]) => ({
         y, label: l, active: y === seasonYr, onClick: () => this.pickSeason(y),
@@ -440,7 +445,9 @@ export class SeasonTower extends React.Component<Props, State> {
     // need. Shrink each zone to its rows; the column pins to the bottom so the baseline holds.
     const abovePxFit = Math.min(abovePx, Math.round(aboveRows * (cellH + 1) + 3))
     const belowPxFit = Math.min(belowPx, Math.round(maxBelow * (cellH + 1) + 3))
-    const colW = Math.max(24, Math.min(56, (chartW - 6 * 32) / 32))
+    // On narrow screens don't squeeze 32 columns into the viewport — hold a readable
+    // width and let the chart scroll horizontally instead.
+    const colW = Math.max(isNarrow ? 44 : 24, Math.min(56, (chartW - 6 * 32) / 32))
     const rowH = Math.max(28, Math.min(40, (chartH - 4) / 32))
     const grouped = (groupBy === 'conf' || groupBy === 'div')
     const groupKey = (t: any) => groupBy === 'div' ? (t.conf + t.div) : t.conf
@@ -618,7 +625,7 @@ export class SeasonTower extends React.Component<Props, State> {
       baselineStyle: `position:absolute;left:16px;right:16px;top:${6 + abovePxFit}px;height:0;border-top:2px dashed #C4C8CE;z-index:1;pointer-events:none;`,
       baselineLabelStyle: `position:absolute;right:18px;top:${6 + abovePxFit - 16}px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#B0B4BC;z-index:1;pointer-events:none;`,
       colsWrapStyle: orient === 'v' ? 'display:flex;flex-direction:row;gap:2px;align-items:stretch;height:100%;min-width:100%;' : 'display:flex;flex-direction:column;gap:2px;',
-      playedStr, leaderAbbr: leader.t.abbr, leaderRec: (leader.Ti ? `${leader.W}-${leader.L}-${leader.Ti}` : `${leader.W}-${leader.L}`),
+      playedStr, hasLeader: decided > 0, leaderAbbr: leader.t.abbr, leaderRec: (leader.Ti ? `${leader.W}-${leader.L}-${leader.Ti}` : `${leader.W}-${leader.L}`),
       pop, popU, popTH, popTeam, popOpp,
       popSetUs: (e: any) => this.applyField('us', e.target.value), popSetTh: (e: any) => this.applyField('them', e.target.value),
       popW: () => this.quick('W'), popL: () => this.quick('L'), popT: () => this.quick('T'), popClear: () => this.clearGame(), popClose: () => this.closePop(),
@@ -637,13 +644,13 @@ export class SeasonTower extends React.Component<Props, State> {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F5F6F4' }}>
 
         {/* ---------- header ---------- */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', padding: '15px 18px 9px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: v.isNarrow ? '8px' : '16px', padding: v.isNarrow ? '7px 10px 6px' : '15px 18px 9px', flexWrap: 'wrap', flex: '0 0 auto' }}>
           <div>
-            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '21px', fontWeight: 900, letterSpacing: '-.3px', color: '#15181d' }}>
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: v.isNarrow ? '5px' : '7px', fontSize: v.isNarrow ? '15px' : '21px', fontWeight: 900, letterSpacing: '-.3px', color: '#15181d' }}>
               <span>NFL</span>
               <button onClick={v.onToggleSeason} style={css(v.seasonBtnStyle)}><span>{v.seasonYr}</span><span style={css(v.seasonArrowStyle)}>▾</span></button>
-              <span style={{ color: '#B0B4BC' }}>·</span>
-              <span>Season Tower</span>
+              {!v.isNarrow && <span style={{ color: '#B0B4BC' }}>·</span>}
+              {!v.isNarrow && <span>Season Tower</span>}
               {v.seasonOpen && (
                 <>
                   <div onClick={v.onToggleSeason} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
@@ -658,33 +665,39 @@ export class SeasonTower extends React.Component<Props, State> {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '5px 11px 5px 9px', border: '1px solid #D7DAE0', borderRadius: '8px', background: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: v.isNarrow ? '6px' : '9px', padding: v.isNarrow ? '3px 7px 3px 5px' : '5px 11px 5px 9px', border: '1px solid #D7DAE0', borderRadius: '8px', background: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <button onClick={v.onStepBack} disabled={v.stepBackDisabled} title="Previous week (←)" aria-label="Previous week" style={stepBtn(v.stepBackDisabled)}>‹</button>
                 <button onClick={v.onPlay} disabled={v.nonedPlayed} title={v.nonedPlayed ? 'No games played yet' : 'Play / pause'} aria-label="Play / pause" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #15181d', background: '#15181d', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{v.playLabel}</button>
                 <button onClick={v.onStepFwd} disabled={v.stepFwdDisabled} title="Next week (→)" aria-label="Next week" style={stepBtn(v.stepFwdDisabled)}>›</button>
               </div>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: '#22262d', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: '78px' }}>{v.weekLabel}</span>
+              <span style={{ fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, color: '#22262d', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: v.isNarrow ? '54px' : '78px' }}>{v.weekLabel}</span>
               <input type="range" min={0} max={Math.max(1, v.sliderMax)} step={1} value={v.throughWeek} onChange={v.onSlide} disabled={v.nonedPlayed}
                 title={v.nonedPlayed ? 'No games played yet' : 'Drag to replay week by week'}
-                style={{ width: '150px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />
+                style={{ width: v.isNarrow ? '78px' : '150px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Group</span>
-              <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
-                <button onClick={v.grpLeague} style={css(v.segLeagueStyle)}>League</button>
-                <button onClick={v.grpConf} style={css(v.segConfStyle)}>Conference</button>
-                <button onClick={v.grpDiv} style={css(v.segDivStyle)}>Division</button>
-              </div>
+            <div style={{ position: 'relative' }}>
+              <button onClick={v.onToggleCog} title="View settings — grouping & ranking" aria-label="View settings" style={{ ...iconBtn, ...(v.cogOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>⚙</button>
+              {v.cogOpen && (
+                <>
+                  <div onClick={v.onToggleCog} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80, width: '232px', background: '#fff', border: '1px solid #E4E7EB', borderRadius: '12px', boxShadow: '0 14px 36px rgba(20,22,28,.17)', padding: '13px 15px', textAlign: 'left' }}>
+                    <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '7px' }}>Group by</div>
+                    <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <button onClick={v.grpLeague} style={css(v.segLeagueStyle)}>League</button>
+                      <button onClick={v.grpConf} style={css(v.segConfStyle)}>Conf</button>
+                      <button onClick={v.grpDiv} style={css(v.segDivStyle)}>Div</button>
+                    </div>
+                    <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', margin: '13px 0 7px' }}>Rank by</div>
+                    <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
+                      <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Rank</span>
-              <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
-                <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
-                <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
-              </div>
-            </div>
-            <button onClick={v.onFullscreen} title="Fullscreen (F)" aria-label="Fullscreen" style={iconBtn}>⛶</button>
+            {!v.isNarrow && <button onClick={v.onFullscreen} title="Fullscreen (F)" aria-label="Fullscreen" style={iconBtn}>⛶</button>}
             <div style={{ position: 'relative' }}>
               <button onClick={v.onToggleHelp} title="Help & keyboard shortcuts" aria-label="Help" style={{ ...iconBtn, ...(v.helpOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>?</button>
               {v.helpOpen && (
@@ -707,15 +720,15 @@ export class SeasonTower extends React.Component<Props, State> {
         </div>
 
         {/* ---------- legend ---------- */}
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '0 18px 10px', fontSize: '11px', color: '#727781', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: v.isNarrow ? '8px' : '16px', alignItems: 'center', padding: v.isNarrow ? '0 10px 5px' : '0 18px 10px', fontSize: v.isNarrow ? '10px' : '11px', color: '#727781', flexWrap: 'wrap', flex: '0 0 auto' }}>
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: 'linear-gradient(135deg,#0080C6,#4F2683)' }} />Win — team color</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#FBEAE9', border: '1px solid #F3D3CF' }} />Loss (below line)</span>}
           {v.oppMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: 'linear-gradient(135deg,#97233F,#0080C6,#203731)' }} />Each box — opponent’s color</span>}
-          {v.oppMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Above the line = win · below = loss · faded = still to play</span>}
+          {v.oppMode && !v.isNarrow && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Above the line = win · below = loss · faded = still to play</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#F2E4BC', border: '1px solid #E7D39A' }} />Tie</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#EDEFF2', border: '1px solid #E4E7EB' }} />To play</span>}
-          <span style={{ marginLeft: '2px', color: '#9298a1' }}>{v.nonedPlayed ? 'No games played yet — the season fills in week by week.' : 'Press ▶ or drag the week slider to watch the season unfold.'}</span>
-          <span style={{ marginLeft: 'auto', color: '#22262d', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{v.playedStr} · Leader: {v.leaderAbbr} {v.leaderRec}</span>
+          {!v.isNarrow && !v.nonedPlayed && <span style={{ marginLeft: '2px', color: '#9298a1' }}>Press ▶ or drag the week slider to watch the season unfold.</span>}
+          <span style={{ marginLeft: 'auto', color: '#22262d', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{v.playedStr}{v.hasLeader ? ` · Leader: ${v.leaderAbbr} ${v.leaderRec}` : ''}</span>
         </div>
 
         {v.loading && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9298a1', fontSize: '14px' }}>{v.loadingText}</div>}
