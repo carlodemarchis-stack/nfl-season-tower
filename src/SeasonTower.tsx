@@ -694,7 +694,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '13px', fontWeight: 900, color: '#15181d', marginBottom: '8px' }}>How to read the tower</div>
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
-                    {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Enter a score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
+                    {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Game box score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
                       <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0', fontSize: '11.5px', color: '#4b5058' }}>
                         <span>{k}</span><kbd style={{ fontFamily: 'inherit', fontSize: '10.5px', fontWeight: 800, color: '#22262d', background: '#F1F3F5', border: '1px solid #E1E4E8', borderRadius: '5px', padding: '1px 6px' }}>{key}</kbd>
                       </div>
@@ -714,7 +714,7 @@ export class SeasonTower extends React.Component<Props, State> {
           {v.oppMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Above the line = win · below = loss · faded = still to play</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#F2E4BC', border: '1px solid #E7D39A' }} />Tie</span>}
           {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#EDEFF2', border: '1px solid #E4E7EB' }} />To play</span>}
-          <span style={{ marginLeft: '2px', color: '#9298a1' }}>{v.nonedPlayed ? 'No games played yet — the season fills in week by week.' : 'Press ▶ or drag the week slider to watch the season unfold · click any cell to enter a score.'}</span>
+          <span style={{ marginLeft: '2px', color: '#9298a1' }}>{v.nonedPlayed ? 'No games played yet — the season fills in week by week.' : 'Press ▶ or drag the week slider to watch the season unfold.'}</span>
           <span style={{ marginLeft: 'auto', color: '#22262d', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{v.playedStr} · Leader: {v.leaderAbbr} {v.leaderRec}</span>
         </div>
 
