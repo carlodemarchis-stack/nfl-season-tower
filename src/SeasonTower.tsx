@@ -123,6 +123,9 @@ export class SeasonTower extends React.Component<Props, State> {
   playedWeeks(R: Dict | null) { let m = 0; for (const k in (R || {})) { const w = parseInt(k.slice(k.indexOf(':') + 1), 10); if (w > m) m = w } return m }
   // 2026 is a live season: it only extends as far as results exist, so the week
   // slider can never be dragged past the last week actually played.
+  // How many weeks the fixture list spans (18). Independent of what's been played —
+  // a bye is a hole in the schedule, so bye detection must scan the full season.
+  scheduleWeeks() { const T = this.activeTeams(); if (!T) return 18; let m = 0; for (const ab in T) for (const g of T[ab].games) { if (g.w > m) m = g.w } return m || 18 }
   maxWeek() { const s = this.season(); return s === '2026' ? this.playedWeeks(this.state.RES26) : s === '2024' ? (this.state.MAX24 || 18) : (this.state.MAX25 || 18) }
   defaultWeek() { return this.season() === '2026' ? 0 : this.maxWeek() }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => this.buildThrough(this.defaultWeek())) }
@@ -353,6 +356,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const showByes = this.props.showByes !== false
     const canEdit = this.props.editScores !== false
     const mx = this.maxWeek()
+    const schedMax = this.scheduleWeeks()
     const seg = (on: boolean) => `padding:7px 11px;border:none;background:${on ? '#15181d' : '#fff'};color:${on ? '#fff' : '#727781'};font-size:12px;font-weight:700;cursor:pointer;`
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
     const isNarrow = (S.cw || 1280) < 820
@@ -400,7 +404,7 @@ export class SeasonTower extends React.Component<Props, State> {
       let bye: any = null
       if (showByes) {
         const weeksSet = new Set(t.games.map((g: any) => g.w))
-        let byeW: number | null = null; for (let w = 1; w <= mx; w++) { if (!weeksSet.has(w)) { byeW = w; break } }
+        let byeW: number | null = null; for (let w = 1; w <= schedMax; w++) { if (!weeksSet.has(w)) { byeW = w; break } }
         if (byeW) {
           const next = t.games.filter((g: any) => g.w > byeW!).sort((a: any, b: any) => a.w - b.w)[0]
           const nextIn = next && this.getRes(t.abbr, next.w)
@@ -409,14 +413,18 @@ export class SeasonTower extends React.Component<Props, State> {
       }
       return { t, wins, losses, ties, pend, bye, W, L, Ti, played, pct }
     })
-    list.sort((x, y) => {
-      if (groupBy === 'conf' || groupBy === 'div') { if (x.t.conf !== y.t.conf) return x.t.conf < y.t.conf ? -1 : 1 }
-      if (groupBy === 'div') { if (x.t.div !== y.t.div) return x.t.div < y.t.div ? -1 : 1 }
+    // Pure ranking order, with no grouping applied — also used to pick the league leader.
+    const rankCmp = (x: any, y: any) => {
       if (rankBy === 'wins') { if (y.W !== x.W) return y.W - x.W }
       if (y.pct !== x.pct) return y.pct - x.pct
       if (y.W !== x.W) return y.W - x.W
       if (x.L !== y.L) return x.L - y.L
       return x.t.abbr < y.t.abbr ? -1 : 1
+    }
+    list.sort((x, y) => {
+      if (groupBy === 'conf' || groupBy === 'div') { if (x.t.conf !== y.t.conf) return x.t.conf < y.t.conf ? -1 : 1 }
+      if (groupBy === 'div') { if (x.t.div !== y.t.div) return x.t.div < y.t.div ? -1 : 1 }
+      return rankCmp(x, y)
     })
 
     let maxAbove = 1, maxBelow = 1
@@ -557,7 +565,7 @@ export class SeasonTower extends React.Component<Props, State> {
 
     const decided = list.reduce((a, e) => a + e.played, 0) / 2
     const playedStr = `${decided} / 272 games`
-    const leader = list[0]
+    const leader = list.reduce((best: any, e: any) => rankCmp(e, best) < 0 ? e : best, list[0])
 
     // detail modal
     const STAT_DEFS: [string, string][] = [['First downs', 'first_downs'], ['Total yards', 'total_yards'], ['Passing yards', 'passing_yards'], ['Rushing yards', 'rushing_yards'], ['Yards / play', 'yards_per_play'], ['3rd down', 'third_down_eff'], ['4th down', 'fourth_down_eff'], ['Red zone', 'red_zone_made_att'], ['Sacks (yds)', 'sacks_yards_lost'], ['Penalties', 'penalties'], ['Turnovers', 'turnovers'], ['Time of poss.', 'time_of_possession']]
