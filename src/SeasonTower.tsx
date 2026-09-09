@@ -14,6 +14,16 @@ import { css } from './css'
 // Inline styles are kept as the prototype's finalized CSS strings and parsed by css().
 // ---------------------------------------------------------------------------
 
+// "+" — the other AGWAS sport experiences, mirroring the league app's cross-promo panel.
+const OTHER_APPS: { name: string; kicker: string; url: string; acc: string }[] = [
+  { name: 'Football', kicker: 'Europe’s top 5 leagues, tower by tower', url: 'https://top5.aguywithascarf.com/', acc: '#0B8A3D' },
+  { name: 'Formula 1', kicker: 'A season read lap by lap', url: 'https://f1.aguywithascarf.com/', acc: '#00d7b6' },
+  { name: 'Tennis', kicker: 'The season, one player at a time', url: 'https://tennis.aguywithascarf.com/', acc: '#f2c14e' },
+  { name: 'World Cup', kicker: 'Road to the Final', url: 'https://worldcupbracket.aguywithascarf.com/', acc: '#3fbe72' },
+  { name: 'PGA TOUR', kicker: 'Season Film', url: 'https://golf.aguywithascarf.com/', acc: '#57a34a' },
+  { name: 'Athletics', kicker: 'World Record Film', url: 'https://athletics.aguywithascarf.com/', acc: '#d98a3d' },
+]
+
 type Orientation = 'auto' | 'towers' | 'rows'
 
 interface Props {
@@ -59,6 +69,7 @@ interface State {
   seasonOpen: boolean
   helpOpen: boolean
   cogOpen: boolean
+  moreOpen: boolean
   groupBy?: 'league' | 'conf' | 'div'
   rankBy?: 'pct' | 'wins'
 }
@@ -95,7 +106,7 @@ export class SeasonTower extends React.Component<Props, State> {
     TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
-    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false,
+    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false, moreOpen: false,
     groupBy: 'div', rankBy: 'wins',
     ...readHash(),
   }
@@ -190,7 +201,7 @@ export class SeasonTower extends React.Component<Props, State> {
     this.buildThrough(cur + delta) // buildThrough clamps to [0, maxWeek]
   }
   onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (this.state.helpOpen || this.state.cogOpen) this.setState({ helpOpen: false, cogOpen: false }); return }
+    if (e.key === 'Escape') { if (this.state.helpOpen || this.state.cogOpen || this.state.moreOpen) this.setState({ helpOpen: false, cogOpen: false, moreOpen: false }); return }
     // Don't hijack keys while typing in a field or while a modal is open.
     const t = e.target as HTMLElement | null
     const tag = t && t.tagName
@@ -402,6 +413,9 @@ export class SeasonTower extends React.Component<Props, State> {
       onToggleHelp: () => this.setState(s => ({ helpOpen: !s.helpOpen, cogOpen: false })),
       cogOpen: S.cogOpen,
       onToggleCog: () => this.setState(s => ({ cogOpen: !s.cogOpen, helpOpen: false })),
+      moreOpen: S.moreOpen,
+      onOpenMore: () => this.setState({ moreOpen: true, cogOpen: false, helpOpen: false }),
+      onCloseMore: () => this.setState({ moreOpen: false }),
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
@@ -733,7 +747,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </>
               )}
             </div>
-            {!v.isNarrow && <button onClick={v.onFullscreen} title="Fullscreen (F)" aria-label="Fullscreen" style={iconBtn}>⛶</button>}
+            <button onClick={v.onOpenMore} title="More sports experiences" aria-label="More sports experiences" style={{ ...iconBtn, fontSize: '19px', fontWeight: 700 }}>+</button>
             <div style={{ position: 'relative' }}>
               <button onClick={v.onToggleHelp} title="Help & keyboard shortcuts" aria-label="Help" style={{ ...iconBtn, ...(v.helpOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>?</button>
               {v.helpOpen && (
@@ -752,6 +766,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </>
               )}
             </div>
+            {!v.isNarrow && <button onClick={v.onFullscreen} title="Fullscreen (F)" aria-label="Fullscreen" style={iconBtn}>⛶</button>}
           </div>
         </div>
 
@@ -1001,6 +1016,33 @@ export class SeasonTower extends React.Component<Props, State> {
             </div>
           )}
         </div>
+
+        {/* ---------- more sports experiences ("+") ---------- */}
+        {v.moreOpen && (
+          <div onClick={v.onCloseMore} style={{ position: 'fixed', inset: 0, background: 'rgba(16,18,22,.42)', zIndex: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div onClick={mStop} style={{ width: 'min(360px,94vw)', maxHeight: '86vh', overflow: 'auto', background: '#fff', borderRadius: '16px', boxShadow: '0 24px 60px rgba(16,18,22,.32)', padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#15181d' }}>More sports experiences</span>
+                <button onClick={v.onCloseMore} aria-label="Close" style={{ border: 'none', background: '#F1F2F4', borderRadius: '8px', width: '28px', height: '28px', fontSize: '15px', cursor: 'pointer', color: '#5c616b' }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {OTHER_APPS.map(a => (
+                  <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 8px', borderRadius: '9px', textDecoration: 'none', color: 'inherit' }}>
+                    <span style={{ flex: '0 0 auto', width: '9px', height: '9px', borderRadius: '50%', background: a.acc }} />
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#15181d' }}>{a.name}</span>
+                      <span style={{ fontSize: '11px', color: '#9298a1', fontWeight: 600 }}>{a.kicker}</span>
+                    </span>
+                    <span style={{ marginLeft: 'auto', color: '#B0B4BC', fontSize: '14px', fontWeight: 700 }}>↗</span>
+                  </a>
+                ))}
+              </div>
+              <div style={{ marginTop: '12px', paddingTop: '11px', borderTop: '1px solid #EDEFF2', fontSize: '12px', color: '#9298a1', fontWeight: 600 }}>
+                <a href="https://dataviz.aguywithascarf.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#0080C6', fontWeight: 700, textDecoration: 'none' }}>See them all →</a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ---------- footer ---------- */}
         <div style={{ flex: '0 0 auto', padding: '8px 18px 10px', borderTop: '1px solid #E8EAED', fontSize: '11px', color: '#9298a1', textAlign: 'center' }}>
