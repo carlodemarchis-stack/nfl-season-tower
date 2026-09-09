@@ -182,7 +182,7 @@ export class SeasonTower extends React.Component<Props, State> {
         if (g.w > n) continue; const k = this.keyOf(ab, g.w); const real = R[k]; if (real) r[k] = { ...real }
       }
     }
-    this.setState({ results: r, throughWeek: n, pop: null })
+    this.setState({ results: r, throughWeek: n, pop: null }, () => this.syncSocialMeta())
   }
   togglePlay() {
     if (this._timer) { clearInterval(this._timer); this._timer = null; this.setState({ playing: false }); return }
@@ -378,6 +378,14 @@ export class SeasonTower extends React.Component<Props, State> {
         onClick: () => this.setState({ teamPop: null, pop: { abbr, w: g.w, opp: g.opp, oppFull: g.oppFull, ha: g.ha, net: g.net, et: g.et } }),
       }
     })
+  }
+  // The AGWAS capture extension reads the agwas:* meta at screenshot time, so keep the
+  // matchweek hashtag in step with what's on screen. Week 0 (nothing played) drops the tag.
+  syncSocialMeta() {
+    const el = document.querySelector('meta[name="agwas:tags"]')
+    if (!el) return
+    const w = this.state.throughWeek
+    el.setAttribute('content', 'nfl dataviz' + (w && w > 0 ? ' wk' + w : ''))
   }
   toggleFullscreen() { const d: any = document; if (d.fullscreenElement) { d.exitFullscreen && d.exitFullscreen() } else { const el: any = d.documentElement; el.requestFullscreen && el.requestFullscreen() } }
 
