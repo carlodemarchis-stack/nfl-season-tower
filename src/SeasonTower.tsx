@@ -428,7 +428,7 @@ export class SeasonTower extends React.Component<Props, State> {
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
       throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, isNarrow, playLabel: S.playing ? '❘❘' : '▶',
-      weekLabel: tw === 0 ? 'Through: —' : (tw >= mx ? 'Full season' : ('Through Wk ' + tw)),
+      weekLabel: tw === 0 ? 'Through: —' : (tw >= schedMax ? 'Full season' : ('Through Wk ' + tw)),
       resultMode: colorMode !== 'opponent', oppMode: colorMode === 'opponent',
       seasonYr,
       seasonOpen: S.seasonOpen,
