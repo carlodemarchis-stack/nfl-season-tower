@@ -734,7 +734,23 @@ export class SeasonTower extends React.Component<Props, State> {
                 title={v.nonedPlayed ? 'No games played yet' : 'Drag to replay week by week'}
                 style={{ width: v.isNarrow ? '78px' : '150px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />
             </div>
-            <div style={{ position: 'relative' }}>
+            {/* wide: Group / Rank inline and always visible. narrow: same two controls, folded into the cog. */}
+            {!v.isNarrow && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Group</span>
+              <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
+                <button onClick={v.grpLeague} style={css(v.segLeagueStyle)}>League</button>
+                <button onClick={v.grpConf} style={css(v.segConfStyle)}>Conference</button>
+                <button onClick={v.grpDiv} style={css(v.segDivStyle)}>Division</button>
+              </div>
+            </div>}
+            {!v.isNarrow && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Rank</span>
+              <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
+                <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
+                <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
+              </div>
+            </div>}
+            {v.isNarrow && <div style={{ position: 'relative' }}>
               <button onClick={v.onToggleCog} title="View settings — grouping & ranking" aria-label="View settings" style={{ ...iconBtn, ...(v.cogOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>⚙</button>
               {v.cogOpen && (
                 <>
@@ -754,7 +770,7 @@ export class SeasonTower extends React.Component<Props, State> {
                   </div>
                 </>
               )}
-            </div>
+            </div>}
             <button onClick={v.onOpenMore} title="More sports experiences" aria-label="More sports experiences" style={{ ...iconBtn, fontSize: '19px', fontWeight: 700 }}>+</button>
             <div style={{ position: 'relative' }}>
               <button onClick={v.onToggleHelp} title="Help & keyboard shortcuts" aria-label="Help" style={{ ...iconBtn, ...(v.helpOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>?</button>
