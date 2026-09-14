@@ -97,6 +97,8 @@ function readHash(): Partial<State> {
 
 export class SeasonTower extends React.Component<Props, State> {
   chartRef = React.createRef<HTMLDivElement>()
+  bandsRef = React.createRef<HTMLDivElement>()
+  _bandRaf = 0
   _measure!: () => void
   _ro?: ResizeObserver
   _mt: any = null
@@ -168,7 +170,7 @@ export class SeasonTower extends React.Component<Props, State> {
     try { history.replaceState(null, '', h) } catch (e) { /* non-fatal */ }
   }
   pickSeason(y: string) { if (y === this.season()) { this.setState({ seasonOpen: false }); return } if (this._timer) { clearInterval(this._timer); this._timer = null } this.setState({ seasonSel: y, seasonOpen: false, playing: false, pop: null, teamPop: null }, () => { this.buildThrough(this.defaultWeek()); this.syncHash() }) }
-  componentWillUnmount() { if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
+  componentWillUnmount() { if (this._bandRaf) cancelAnimationFrame(this._bandRaf); if (this._ro) this._ro.disconnect(); if (this._mt) clearInterval(this._mt); if (this._timer) clearInterval(this._timer); window.removeEventListener('keydown', this.onKey) }
 
   // Reveal real results through week n. Each season fills in as games are played;
   // any game past week n — or without a result yet — renders as upcoming.
@@ -212,12 +214,43 @@ export class SeasonTower extends React.Component<Props, State> {
     if (e.key === 'f' || e.key === 'F') { e.preventDefault(); this.toggleFullscreen(); return }
   }
 
+  // Tower columns size to their content (min-width:auto beats the flex-basis), so the
+  // group bands can't be sized from colW — measure each group's real extent and pin the
+  // label across it. Runs after every render and after every resize-driven re-render.
+  syncBands() {
+    const row = this.bandsRef.current, wrap = this.chartRef.current
+    if (!row || !wrap) return
+    const cols = wrap.querySelectorAll('[data-team]')
+    const kids = row.children
+    if (!cols.length || !kids.length) return
+    // offsetLeft/offsetWidth are layout coords — unlike getBoundingClientRect they ignore the
+    // FLIP transforms, so a mid-animation re-render still measures the settled positions.
+    const rowLeft = (row as HTMLElement).offsetLeft
+    let idx = 0
+    for (let i = 0; i < kids.length; i++) {
+      const el = kids[i] as HTMLElement
+      const n = parseInt(el.getAttribute('data-n') || '0', 10)
+      if (!n || idx + n > cols.length) break
+      const first = cols[idx] as HTMLElement, last = cols[idx + n - 1] as HTMLElement
+      el.style.left = (first.offsetLeft - rowLeft) + 'px'
+      el.style.width = Math.max(0, (last.offsetLeft + last.offsetWidth) - first.offsetLeft) + 'px'
+      idx += n
+    }
+  }
+  // one extra pass on the next frame, once fonts/layout have settled
+  queueSyncBands() {
+    this.syncBands()
+    if (this._bandRaf) cancelAnimationFrame(this._bandRaf)
+    this._bandRaf = requestAnimationFrame(() => { this._bandRaf = 0; this.syncBands() })
+  }
+
   getSnapshotBeforeUpdate() {
     const root = this.chartRef.current; if (!root) return null
     const m: Dict = {}; root.querySelectorAll('[data-team]').forEach(el => { const r = (el as HTMLElement).getBoundingClientRect(); m[el.getAttribute('data-team')!] = { x: r.left, y: r.top } })
     return m
   }
   componentDidUpdate(pp: Props, _ps: State, snap: Dict | null) {
+    this.queueSyncBands()
     // rebuild when the season prop changes
     if (pp && pp.season !== this.props.season) { this.setState({ seasonSel: null }, () => this.buildThrough(this.defaultWeek())); return }
     if (!snap) return; const root = this.chartRef.current; if (!root) return
@@ -441,7 +474,7 @@ export class SeasonTower extends React.Component<Props, State> {
         tick: y === seasonYr ? '✓' : '',
       })),
     }
-    if (!T) { return { ...base, loading: true, teamsSorted: [], showBaseline: false, colsWrapStyle: '', playedStr: '', leaderAbbr: '', leaderRec: '', pop: null } }
+    if (!T) { return { ...base, loading: true, teamsSorted: [], showBaseline: false, colsWrapStyle: '', playedStr: '', bands: [], bandH: 22, pop: null } }
 
     const list = Object.values(T).map((t: any) => {
       const wins: any[] = [], losses: any[] = [], ties: any[] = [], pend: any[] = []
@@ -484,7 +517,10 @@ export class SeasonTower extends React.Component<Props, State> {
     const liveH = this.chartRef.current ? Math.round(this.chartRef.current.clientHeight - 20) : 0
     const chartH = (liveH > 40 ? liveH : (S.ch || 600)), chartW = S.cw || 1200
     const labelH = 44
-    const usableH = Math.max(160, chartH - labelH - 8)
+    // A constant-height row above the towers carries the conference/division names.
+    // Reserved in every mode (empty in League) so switching grouping never shifts the towers.
+    const BAND_H = 22
+    const usableH = Math.max(160, chartH - labelH - 8 - BAND_H)
     // Split usable height proportionally to the tallest stack on each side. Ceiling mode
     // inserts one empty row above the played tower, so budget that extra row or the top clips.
     const gapRows = pendCeiling ? 1 : 0
@@ -615,7 +651,26 @@ export class SeasonTower extends React.Component<Props, State> {
 
     const decided = list.reduce((a, e) => a + e.played, 0) / 2
     const playedStr = `${decided} / 272 games`
-    const leader = list.reduce((best: any, e: any) => rankCmp(e, best) < 0 ? e : best, list[0])
+    // One band per visible group, sized to exactly span its columns (incl. the 2px column
+    // gaps and the 16px inter-group gap) so the names line up over the towers.
+    const DIVNAME: Dict = { E: 'East', N: 'North', S: 'South', W: 'West' }
+    const bands: Dict[] = []
+    if (orient === 'v') {
+      let cur: Dict | null = null
+      for (const e of list) {
+        const k = grouped ? groupKey(e.t) : '__all__'
+        if (!cur || cur.k !== k) {
+          cur = { k, n: 0, label: !grouped ? '' : (groupBy === 'div' ? `${e.t.conf} ${DIVNAME[e.t.div] || e.t.div}` : e.t.conf) }
+          bands.push(cur)
+        }
+        cur.n++
+      }
+      for (const b of bands) {
+        b.style = 'position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;' +
+          'font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#9298a1;' +
+          'white-space:nowrap;overflow:hidden;'
+      }
+    }
 
     // detail modal
     const STAT_DEFS: [string, string][] = [['First downs', 'first_downs'], ['Total yards', 'total_yards'], ['Passing yards', 'passing_yards'], ['Rushing yards', 'rushing_yards'], ['Yards / play', 'yards_per_play'], ['3rd down', 'third_down_eff'], ['4th down', 'fourth_down_eff'], ['Red zone', 'red_zone_made_att'], ['Sacks (yds)', 'sacks_yards_lost'], ['Penalties', 'penalties'], ['Turnovers', 'turnovers'], ['Time of poss.', 'time_of_possession']]
@@ -682,8 +737,8 @@ export class SeasonTower extends React.Component<Props, State> {
       showBaseline: false,
       baselineStyle: `position:absolute;left:16px;right:16px;top:${6 + abovePxFit}px;height:0;border-top:2px dashed #C4C8CE;z-index:1;pointer-events:none;`,
       baselineLabelStyle: `position:absolute;right:18px;top:${6 + abovePxFit - 16}px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#B0B4BC;z-index:1;pointer-events:none;`,
-      colsWrapStyle: orient === 'v' ? 'display:flex;flex-direction:row;gap:2px;align-items:stretch;height:100%;min-width:100%;' : 'display:flex;flex-direction:column;gap:2px;',
-      playedStr, hasLeader: decided > 0, leaderAbbr: leader.t.abbr, leaderRec: (leader.Ti ? `${leader.W}-${leader.L}-${leader.Ti}` : `${leader.W}-${leader.L}`),
+      colsWrapStyle: orient === 'v' ? 'display:flex;flex-direction:row;gap:2px;align-items:stretch;flex:1 1 auto;min-height:0;min-width:100%;' : 'display:flex;flex-direction:column;gap:2px;',
+      playedStr, bandH: BAND_H, bands,
       pop, popU, popTH, popTeam, popOpp,
       popSetUs: (e: any) => this.applyField('us', e.target.value), popSetTh: (e: any) => this.applyField('them', e.target.value),
       popW: () => this.quick('W'), popL: () => this.quick('L'), popT: () => this.quick('T'), popClear: () => this.clearGame(), popClose: () => this.closePop(),
@@ -709,6 +764,7 @@ export class SeasonTower extends React.Component<Props, State> {
               <button onClick={v.onToggleSeason} style={css(v.seasonBtnStyle)}><span>{v.seasonYr}</span><span style={css(v.seasonArrowStyle)}>▾</span></button>
               {!v.isNarrow && <span style={{ color: '#B0B4BC' }}>·</span>}
               {!v.isNarrow && <span>Season Tower</span>}
+              <span style={{ marginLeft: v.isNarrow ? '4px' : '10px', fontSize: v.isNarrow ? '10px' : '12px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>{v.playedStr}</span>
               {v.seasonOpen && (
                 <>
                   <div onClick={v.onToggleSeason} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
@@ -794,18 +850,6 @@ export class SeasonTower extends React.Component<Props, State> {
           </div>
         </div>
 
-        {/* ---------- legend ---------- */}
-        <div style={{ display: 'flex', gap: v.isNarrow ? '8px' : '16px', alignItems: 'center', padding: v.isNarrow ? '0 10px 5px' : '0 18px 10px', fontSize: v.isNarrow ? '10px' : '11px', color: '#727781', flexWrap: 'wrap', flex: '0 0 auto' }}>
-          {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: 'linear-gradient(135deg,#0080C6,#4F2683)' }} />Win — team color</span>}
-          {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#FBEAE9', border: '1px solid #F3D3CF' }} />Loss (below line)</span>}
-          {v.oppMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: 'linear-gradient(135deg,#97233F,#0080C6,#203731)' }} />Each box — opponent’s color</span>}
-          {v.oppMode && !v.isNarrow && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Above the line = win · below = loss · faded = still to play</span>}
-          {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#F2E4BC', border: '1px solid #E7D39A' }} />Tie</span>}
-          {v.resultMode && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '13px', height: '13px', borderRadius: '3px', background: '#EDEFF2', border: '1px solid #E4E7EB' }} />To play</span>}
-          {!v.isNarrow && !v.nonedPlayed && <span style={{ marginLeft: '2px', color: '#9298a1' }}>Press ▶ or drag the week slider to watch the season unfold.</span>}
-          <span style={{ marginLeft: 'auto', color: '#22262d', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{v.playedStr}{v.hasLeader ? ` · Leader: ${v.leaderAbbr} ${v.leaderRec}` : ''}</span>
-        </div>
-
         {v.loading && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9298a1', fontSize: '14px' }}>{v.loadingText}</div>}
 
         {/* ---------- chart ---------- */}
@@ -813,6 +857,10 @@ export class SeasonTower extends React.Component<Props, State> {
           {v.showBaseline && <div style={css(v.baselineStyle)} />}
           {v.showBaseline && <div style={css(v.baselineLabelStyle)}>baseline · 0</div>}
 
+          <div style={{ height: '100%', minWidth: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div ref={this.bandsRef} style={{ flex: `0 0 ${v.bandH}px`, position: 'relative', minWidth: '100%' }}>
+            {v.bands.map((b: any) => <div key={b.k} data-n={b.n} style={css(b.style)}>{b.label}</div>)}
+          </div>
           <div style={css(v.colsWrapStyle)}>
             {v.teamsSorted.map((t: any) => (
               <div key={t.abbr} data-team={t.abbr} style={css(t.colStyle)}>
@@ -830,6 +878,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </div>
               </div>
             ))}
+          </div>
           </div>
 
           {/* ---------- game detail modal ---------- */}
