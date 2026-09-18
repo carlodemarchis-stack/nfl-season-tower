@@ -1,0 +1,82 @@
+name: Update 2026 results
+
+# Pulls finished games from ESPN and, only if something actually changed, commits and
+# redeploys. Cron windows sit just after each NFL slate ends (times are UTC), with a
+# second attempt an hour later because scheduled runs can be delayed under load, plus a
+# daily safety net. Every run is a no-op unless a game has gone FINAL, so extra firings
+# are free — that is the "keep trying once games are over" behaviour.
+on:
+  schedule:
+    - cron: '0 4,6 * * 5'   # Thu-night game (Fri UTC)
+    - cron: '30 20 * * 0'   # Sun early window ends
+    - cron: '45 23 * * 0'   # Sun late window ends
+    - cron: '0 4,6 * * 1'   # Sunday Night Football (Mon UTC)
+    - cron: '0 4,6 * * 2'   # Monday Night Football (Tue UTC)
+    - cron: '0 12 * * *'    # daily safety net
+  workflow_dispatch:
+
+# contents: write for the results commit; pages/id-token for the deploy.
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages          # same group as deploy.yml so the two can never overlap
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.pull.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull finished games from ESPN
+        id: pull
+        run: |
+          python3 tools/update_results.py
+          if git diff --quiet -- src/data/results-2026.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new finals — nothing to commit."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- src/data/results-2026.js
+          fi
+
+      - name: Commit
+        if: steps.pull.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/results-2026.js
+          git commit -m "Update 2026 results (automated)"
+          git push
+
+  # Inlined rather than calling deploy.yml: a push made with GITHUB_TOKEN does not trigger
+  # other workflows, and a reusable workflow would check out the SHA that started this run,
+  # which predates the commit above.
+  deploy:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main       # pick up the commit the update job just pushed
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
