@@ -313,6 +313,81 @@ export class SeasonTower extends React.Component<Props, State> {
     for (const g of t.games) { const r = this.getRes(abbr, g.w); if (!r) continue; if (r.res === 'W') W++; else if (r.res === 'L') L++; else Ti++ }
     return { W, L, Ti, str: Ti ? `${W}-${L}-${Ti}` : `${W}-${L}` }
   }
+  // Week-by-week season path for the team modal. Primary series = games above/below .500
+  // (W-L), drawn as a staircase so it reads exactly like the tower: up on a win, down on a
+  // loss, flat through a bye. Secondary = position within the division (1-4) — the honest
+  // NFL analogue of a league-position line, since with 32 teams and 17 games the league-wide
+  // rank is decided by arbitrary tiebreaks and would jitter. Respects the week slider,
+  // because it reads this.getRes (already filtered to "through week N").
+  seasonChart(abbr: string): Dict | null {
+    const T = this.activeTeams(); if (!T || !T[abbr]) return null
+    const me = T[abbr]
+    const maxW = this.scheduleWeeks()
+    const div = Object.values(T).filter((x: any) => x.conf === me.conf && x.div === me.div) as any[]
+    const cum: Dict = {}
+    for (const d of div) cum[d.abbr] = { W: 0, L: 0, T: 0 }
+
+    // last week with any result inside this division — rivals can move our position in a bye week
+    let lastW = 0
+    for (const d of div) for (const g of d.games) if (this.getRes(d.abbr, g.w)) lastW = Math.max(lastW, g.w)
+    if (!lastW) return null
+
+    const pct = (c: Dict) => { const n = c.W + c.L + c.T; return n ? (c.W + 0.5 * c.T) / n : 0 }
+    const pts: Dict[] = []
+    for (let w = 1; w <= lastW; w++) {
+      let res: string | null = null
+      for (const d of div) {
+        const r = this.getRes(d.abbr, w)
+        if (!r) continue
+        cum[d.abbr][r.res === 'W' ? 'W' : r.res === 'L' ? 'L' : 'T']++
+        if (d.abbr === abbr) res = r.res
+      }
+      const c = cum[abbr]
+      if (c.W + c.L + c.T === 0) continue          // team hasn't started yet
+      const ranked = div.slice().sort((a, b) => {
+        const d = pct(cum[b.abbr]) - pct(cum[a.abbr]); if (d) return d
+        const wd = cum[b.abbr].W - cum[a.abbr].W; if (wd) return wd
+        return a.abbr < b.abbr ? -1 : 1
+      })
+      pts.push({ w, diff: c.W - c.L, pos: ranked.findIndex((x: any) => x.abbr === abbr) + 1, res })
+    }
+    if (!pts.length) return null
+
+    // geometry
+    const W = 480, H = 132, padL = 24, padR = 20, padT = 12, padB = 18
+    const pw = W - padL - padR, ph = H - padT - padB
+    const span = Math.max(2, ...pts.map((p: Dict) => Math.abs(p.diff)))
+    const x = (w: number) => padL + (maxW > 1 ? (w - 1) / (maxW - 1) : 0) * pw
+    const yd = (d: number) => padT + ph / 2 - (d / span) * (ph / 2)
+    const yp = (p: number) => padT + ((p - 1) / 3) * ph
+    const zeroY = padT + ph / 2
+
+    // step-after staircase, starting flat from week 0 at .500
+    let step = `M ${x(1).toFixed(1)} ${zeroY.toFixed(1)}`
+    let prevY = zeroY
+    for (const p of pts) {
+      const px = x(p.w), py = yd(p.diff)
+      step += ` L ${px.toFixed(1)} ${prevY.toFixed(1)} L ${px.toFixed(1)} ${py.toFixed(1)}`
+      prevY = py
+    }
+    const lastX = x(pts[pts.length - 1].w)
+    const area = `${step} L ${lastX.toFixed(1)} ${zeroY.toFixed(1)} Z`
+    const posD = pts.map((p: Dict, i: number) => `${i ? 'L' : 'M'} ${x(p.w).toFixed(1)} ${yp(p.pos).toFixed(1)}`).join(' ')
+
+    const ticks = []
+    for (let w = 1; w <= maxW; w++) if (w === 1 || w === maxW || w % 5 === 0) ticks.push({ w, x: x(w) })
+
+    return {
+      W, H, zeroY, padL, padR, padT, ph, plotR: W - padR,
+      step, area, posD,
+      dots: pts.map((p: Dict) => ({ key: p.w, cx: x(p.w), cy: yd(p.diff), res: p.res, w: p.w, diff: p.diff, pos: p.pos })),
+      posDots: pts.map((p: Dict) => ({ key: p.w, cx: x(p.w), cy: yp(p.pos) })),
+      ticks,
+      hiLabel: `+${span}`, loLabel: `−${span}`,
+      last: pts[pts.length - 1],
+      clipHi: `clipHi-${abbr}`, clipLo: `clipLo-${abbr}`,
+    }
+  }
   buildTeamModal(): Dict | null {
     const abbr = this.state.teamPop; if (!abbr) return null
     const T = this.activeTeams(); if (!T || !T[abbr]) return null
@@ -378,7 +453,9 @@ export class SeasonTower extends React.Component<Props, State> {
         }
       })
     }
+    const chart = this.seasonChart(abbr)
     return {
+      chart, chartAccent: prim,
       abbr, name: t.name, prim, txt, rec: rec.str, div: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : t.div === 'W' ? 'West' : t.div}`,
       coach: (rost && rost.coach) || '—', count: (rost && rost.count) || 0,
       headStyle: `background:linear-gradient(135deg,${prim} 0%,${this.mix(prim, '#000000', .25)} 100%);color:${txt};`,
@@ -1062,6 +1139,45 @@ export class SeasonTower extends React.Component<Props, State> {
 
                   {v.tm.tabSched && (
                     <div style={{ padding: '14px 22px 22px' }}>
+                      {v.tm.chart && (() => { const c = v.tm.chart; const A = v.tm.chartAccent; return (
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Season path by week</span>
+                            <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#9298a1' }}>
+                              <span style={{ color: A }}>■</span> games over .500 · <span style={{ color: '#B0B4BC' }}>▬</span> division place
+                            </span>
+                          </div>
+                          <svg viewBox={`0 0 ${c.W} ${c.H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+                            <defs>
+                              <clipPath id={c.clipHi}><rect x={c.padL} y={c.padT} width={c.plotR - c.padL} height={c.zeroY - c.padT} /></clipPath>
+                              <clipPath id={c.clipLo}><rect x={c.padL} y={c.zeroY} width={c.plotR - c.padL} height={c.padT + c.ph - c.zeroY} /></clipPath>
+                            </defs>
+                            {/* .500 baseline — same dashed language as the tower */}
+                            <line x1={c.padL} y1={c.zeroY} x2={c.plotR} y2={c.zeroY} stroke="#C4C8CE" strokeWidth="1" strokeDasharray="3 3" />
+                            <text x={c.padL - 4} y={c.zeroY + 3} textAnchor="end" style={{ fontSize: '7.5px', fontWeight: 700, fill: '#B0B4BC' }}>.500</text>
+                            <text x={c.padL - 4} y={c.padT + 6} textAnchor="end" style={{ fontSize: '7.5px', fontWeight: 700, fill: '#B0B4BC' }}>{c.hiLabel}</text>
+                            <text x={c.padL - 4} y={c.padT + c.ph} textAnchor="end" style={{ fontSize: '7.5px', fontWeight: 700, fill: '#B0B4BC' }}>{c.loLabel}</text>
+                            {/* wins fill above the line, losses below */}
+                            <path d={c.area} fill={A} opacity="0.16" clipPath={`url(#${c.clipHi})`} />
+                            <path d={c.area} fill="#E5484D" opacity="0.14" clipPath={`url(#${c.clipLo})`} />
+                            {/* division place (1 top → 4 bottom) */}
+                            <path d={c.posD} fill="none" stroke="#B0B4BC" strokeWidth="1.1" strokeDasharray="2.5 2.5" />
+                            {c.posDots.map((d: any) => <circle key={'p' + d.key} cx={d.cx} cy={d.cy} r="1.6" fill="#B0B4BC" />)}
+                            {/* the staircase */}
+                            <path d={c.step} fill="none" stroke={A} strokeWidth="2" strokeLinejoin="round" />
+                            {c.dots.map((d: any) => (
+                              <circle key={d.key} cx={d.cx} cy={d.cy} r="2.6"
+                                fill={d.res === 'W' ? A : d.res === 'L' ? '#ffffff' : '#D9A13A'}
+                                stroke={d.res === 'L' ? '#E5484D' : A} strokeWidth="1.4">
+                                <title>{`Wk ${d.w} · ${d.diff > 0 ? '+' : ''}${d.diff} over .500 · ${d.pos}${d.pos === 1 ? 'st' : d.pos === 2 ? 'nd' : d.pos === 3 ? 'rd' : 'th'} in division`}</title>
+                              </circle>
+                            ))}
+                            {c.ticks.map((t: any) => (
+                              <text key={t.w} x={t.x} y={c.H - 5} textAnchor="middle" style={{ fontSize: '7.5px', fontWeight: 700, fill: '#B0B4BC' }}>{t.w}</text>
+                            ))}
+                          </svg>
+                        </div>
+                      ) })()}
                       {v.tm.sched.map((g: any, i: number) => (
                         <div key={i} onClick={g.onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 0', borderTop: '1px solid #F3F4F6', cursor: 'pointer' }}>
                           <span style={{ flex: '0 0 42px', fontSize: '11px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{g.w}</span>
