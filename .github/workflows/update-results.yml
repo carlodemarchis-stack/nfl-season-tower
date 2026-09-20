@@ -7,12 +7,16 @@ name: Update 2026 results
 # are free — that is the "keep trying once games are over" behaviour.
 on:
   schedule:
-    - cron: '0 4,6 * * 5'   # Thu-night game (Fri UTC)
-    - cron: '30 20 * * 0'   # Sun early window ends
-    - cron: '45 23 * * 0'   # Sun late window ends
-    - cron: '0 4,6 * * 1'   # Sunday Night Football (Mon UTC)
-    - cron: '0 4,6 * * 2'   # Monday Night Football (Tue UTC)
-    - cron: '0 12 * * *'    # daily safety net
+    # Hourly through every game window rather than a couple of point-in-time runs:
+    # GitHub defers scheduled workflows under load and we were seeing 3-4h delays, so a
+    # single cron at the end of a slate could land hours late. Hourly attempts mean the
+    # first slot after the backlog clears picks the games up. Minute :17 on purpose —
+    # top-of-hour is the most contended slot and gets deferred hardest.
+    - cron: '17 3-8 * * 5'   # Fri: Thursday-night game (+ slack for delays)
+    - cron: '17 20-23 * * 0' # Sun: early and late windows finish
+    - cron: '17 0-8 * * 1'   # Mon: late window + Sunday Night Football
+    - cron: '17 3-8 * * 2'   # Tue: Monday Night Football
+    - cron: '17 12 * * *'    # daily safety net
   workflow_dispatch:
 
 # contents: write for the results commit; pages/id-token for the deploy.
