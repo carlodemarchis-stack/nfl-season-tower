@@ -710,18 +710,18 @@ export class SeasonTower extends React.Component<Props, State> {
         labelStyle = `order:1;flex:0 0 ${labelH}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#fff;border:1px solid #E4E7EB;border-top:3px solid ${prim};border-bottom:3px solid ${prim};border-radius:4px;box-shadow:0 1px 2px rgba(20,22,28,.05);cursor:pointer;`
         divStyle = `order:2;height:0;`
         z2Style = `order:3;flex:0 0 ${belowPxFit}px;display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding-top:2px;`
-        rankStyle = grouped ? `font-size:8.5px;font-weight:400;letter-spacing:.3px;color:${prim};` : 'font-size:9px;color:#B0B4BC;font-weight:700;'
+        rankStyle = grouped ? `font-size:7px;font-weight:600;letter-spacing:.2px;color:${prim};opacity:.75;` : 'font-size:8px;color:#B0B4BC;font-weight:700;'
         abbrStyle = `font-size:${colW < 32 ? 10 : 12}px;font-weight:900;color:#1b1e24;letter-spacing:.3px;`
-        recStyle = 'font-size:9px;color:#727781;font-weight:600;font-variant-numeric:tabular-nums;'
+        recStyle = 'font-size:10px;color:#3a3f47;font-weight:800;font-variant-numeric:tabular-nums;'
       } else {
         colStyle = `flex:0 0 ${rowH}px;width:100%;display:flex;flex-direction:row;align-items:center;${isGroupStart ? 'margin-top:12px;' : ''}`
         z1Style = 'order:0;flex:0 1 auto;max-width:42%;display:flex;flex-direction:row;justify-content:flex-end;align-items:center;overflow-x:auto;overflow-y:hidden;'
         labelStyle = `order:1;flex:0 0 ${labelW}px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;background:#fff;border:1px solid #E4E7EB;border-left:4px solid ${prim};border-right:4px solid ${prim};border-radius:4px;margin:0 4px;cursor:pointer;`
         divStyle = 'display:none;'
         z2Style = 'order:2;flex:1 1 auto;display:flex;flex-direction:row;justify-content:flex-start;align-items:center;overflow-x:auto;overflow-y:hidden;'
-        rankStyle = grouped ? `font-size:9px;font-weight:400;letter-spacing:.3px;color:${prim};text-align:right;flex:0 0 auto;` : 'font-size:10px;color:#B0B4BC;font-weight:700;width:16px;text-align:right;flex:0 0 auto;'
+        rankStyle = grouped ? `font-size:7.5px;font-weight:600;letter-spacing:.2px;color:${prim};opacity:.75;text-align:right;flex:0 0 auto;` : 'font-size:9px;color:#B0B4BC;font-weight:700;width:16px;text-align:right;flex:0 0 auto;'
         abbrStyle = 'font-size:12px;font-weight:900;color:#1b1e24;width:30px;flex:0 0 auto;'
-        recStyle = 'font-size:10px;color:#727781;font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 auto;'
+        recStyle = 'font-size:11px;color:#3a3f47;font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto;'
       }
       return { abbr: t.abbr, rank: rankText, recordStr, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
     })
