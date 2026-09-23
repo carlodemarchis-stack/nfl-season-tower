@@ -16,12 +16,13 @@ import { css } from './css'
 
 // "+" — the other AGWAS sport experiences, mirroring the league app's cross-promo panel.
 const OTHER_APPS: { name: string; kicker: string; url: string; acc: string }[] = [
-  { name: 'Football', kicker: 'Europe’s top 5 leagues, tower by tower', url: 'https://top5.aguywithascarf.com/', acc: '#0B8A3D' },
   { name: 'Formula 1', kicker: 'A season read lap by lap', url: 'https://f1.aguywithascarf.com/', acc: '#00d7b6' },
   { name: 'Tennis', kicker: 'The season, one player at a time', url: 'https://tennis.aguywithascarf.com/', acc: '#f2c14e' },
+  { name: 'Football', kicker: 'Season towers, top 5 leagues', url: 'https://top5.aguywithascarf.com/', acc: '#2f9e58' },
+  { name: 'NBA', kicker: 'Season film and towers', url: 'https://nba.aguywithascarf.com/', acc: '#e0453f' },
   { name: 'World Cup', kicker: 'Road to the Final', url: 'https://worldcupbracket.aguywithascarf.com/', acc: '#3fbe72' },
   { name: 'PGA TOUR', kicker: 'Season Film', url: 'https://golf.aguywithascarf.com/', acc: '#57a34a' },
-  { name: 'Athletics', kicker: 'World Record Film', url: 'https://athletics.aguywithascarf.com/', acc: '#d98a3d' },
+  { name: 'Athletics', kicker: 'World Record Film', url: 'https://athletics.aguywithascarf.com/', acc: '#d98a3d' }
 ]
 
 type Orientation = 'auto' | 'towers' | 'rows'
