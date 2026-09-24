@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""NFL season leaders, one leaderboard per position group.
+
+    python3 tools/fetch_players.py 2025
+
+Why groups and not a top-100: the NBA deck works because one number ranks everyone
+(points). Football has no such axis -- a left tackle, a nickel corner and a punter
+share no stat -- so any single "top 100" would be an invented metric wearing the
+clothes of a fact. Each group is therefore ranked by a stat that means something for
+that group, and the card shows the numbers that position is actually judged on.
+
+ESPN's byathlete returns EVERY category for each athlete, so one sorted request per
+group yields complete players, not just the sorted column.
+"""
+import json, os, subprocess, sys
+from concurrent.futures import ThreadPoolExecutor
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(HERE, "..", "src", "data")
+API = ("https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/"
+       "byathlete?region=us&lang=en&contentorigin=espn")
+
+# group key, label, ranking stat(s), positions kept, how many cards.
+# Linebackers and the secondary are ranked separately on purpose: sorting the whole
+# back seven by tackles buries defensive backs almost entirely (a first pass returned
+# 23 LBs and one safety), so the secondary gets interceptions, the stat it is judged on.
+# Specialists take two boards for the same reason -- kickers never appear on a punting
+# board and punters never appear on a kicking one.
+GROUPS = [
+    # key, label, [(ranking stat, positions kept, how many)]
+    ("qb", "Quarterbacks",  [("passing.passingYards",     {"QB"}, 24)]),
+    ("rb", "Running backs", [("rushing.rushingYards",     {"RB", "FB"}, 24)]),
+    ("wr", "Receivers",     [("receiving.receivingYards", {"WR", "TE"}, 36)]),
+    ("dl", "Pass rushers",  [("defensive.sacks",          {"DE", "DT", "EDGE", "NT"}, 24)]),
+    ("lb", "Linebackers",   [("defensive.totalTackles",   {"LB", "ILB", "OLB", "MLB"}, 24)]),
+    # Passes defended, not interceptions: ESPN does not accept a
+    # defensiveinterceptions sort, and PD is the steadier measure anyway.
+    ("db", "Secondary",     [("defensive.passesDefended", {"CB", "S", "FS", "SS", "DB"}, 24)]),
+    # Two boards with their own quotas -- a kicker never appears on a punting
+    # leaderboard, so a single shared board returns kickers only.
+    ("k",  "Specialists",   [("kicking.fieldGoalsMade",    {"PK", "K"}, 10),
+                             ("punting.grossAvgPuntYards", {"P"}, 6)]),
+]
+
+
+def get(url):
+    out = subprocess.run(["curl", "-s", "--max-time", "40", url],
+                         capture_output=True, text=True).stdout
+    return json.loads(out) if out.strip() else {}
+
+
+def page(season, sort, n):
+    d = get(f"{API}&season={season}&seasontype=2&limit={n}&page=1&sort={sort}%3Adesc")
+    names = {c["name"]: c["names"] for c in d.get("categories", [])}
+    return d.get("athletes", []), names
+
+
+def flatten(row, names):
+    """One athlete -> {category: {statName: value}}, dropping empty categories."""
+    out = {}
+    for c in row.get("categories", []):
+        vals = c.get("values") or []
+        keys = names.get(c["name"], [])
+        if not vals:
+            continue
+        out[c["name"]] = {k: v for k, v in zip(keys, vals) if v is not None}
+    return out
+
+
+def main(season):
+    players, groups = {}, []
+    for key, label, boards in GROUPS:
+        kept = []
+        for sort, positions, want in boards:
+            got = 0
+            # over-fetch: the board is league-wide and we keep only this group's
+            # positions (a QB tops rushing boards some weeks)
+            rows, names = page(season, sort, max(want * 6, 140))
+            for r in rows:
+                a = r["athlete"]
+                pos = (a.get("position") or {}).get("abbreviation")
+                if pos not in positions:
+                    continue
+                pid = str(a["id"])
+                if pid in kept:
+                    continue
+                st = flatten(r, names)
+                if not st:
+                    continue
+                players[pid] = {
+                    "id": pid, "n": a.get("displayName"), "pos": pos,
+                    "team": r.get("teamShortName") or a.get("teamShortName"),
+                    "age": a.get("age"), "st": st,
+                }
+                kept.append(pid)
+                got += 1
+                if got >= want:
+                    break
+        groups.append({"key": key, "label": label,
+                       "sort": boards[0][0], "ids": kept})
+        print(f"  {label:15} {len(kept):>3} cards   (leader {players[kept[0]]['n']})"
+              if kept else f"  {label:15}   0 cards")
+
+    out = {"season": season, "groups": groups, "players": players}
+    p = os.path.join(DATA, f"players-{season}.js")
+    with open(p, "w") as f:
+        f.write("// NFL season leaders by position group. Generated by tools/fetch_players.py\n")
+        f.write("// from ESPN's byathlete leaderboards -- one sorted request per group.\n")
+        f.write("export const PLAYERS" + str(season) + " = "
+                + json.dumps(out, separators=(",", ":"), ensure_ascii=False) + "\n")
+    print(f"\n  {len(players)} unique players -> {os.path.relpath(p, os.path.join(HERE, '..'))}"
+          f"  ({os.path.getsize(p)/1024:.0f} KB)")
+
+
+main(sys.argv[1] if len(sys.argv) > 1 else "2025")
