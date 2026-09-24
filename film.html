@@ -9,7 +9,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="A guy with a scarf" />
 <meta property="og:title" content="NFL — 2025 Season Film" />
-<meta property="og:description" content="An interactive NFL card film: one card per team in ranking order, every game as a tower, full roster and season splits. Best in landscape on laptops & iPads — also great on your phone." />
+<meta property="og:description" content="An interactive NFL card film: 172 players by position group and all 32 clubs, every game as a tower, full rosters and season splits. Best in landscape on laptops & iPads — also great on your phone." />
 <meta property="og:url" content="https://nfl.aguywithascarf.com/film.html" />
 <meta property="og:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
 <meta property="og:image:width" content="1200" />
@@ -17,7 +17,7 @@
 <meta property="og:image:alt" content="NFL Season Film — one card per team" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="NFL — 2025 Season Film" />
-<meta name="twitter:description" content="An interactive NFL card film: one card per team, every game as a tower, full roster and season splits." />
+<meta name="twitter:description" content="An interactive NFL card film: 172 players by position group and all 32 clubs, every game as a tower." />
 <meta name="twitter:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "e9ec6c0b0728499a87d424cd22d7c5cf"}'></script><!-- End Cloudflare Web Analytics -->
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -30,9 +30,13 @@
   html,body{height:100%;overflow:hidden;background:#0e0f12;color:#fff;font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
   /* horizontal deck — full-bleed brand cards */
   .stage{position:fixed;inset:0;overflow:hidden;}
-  .track{display:flex;height:100%;will-change:transform;transition:transform .52s cubic-bezier(.22,.61,.36,1);}
+  .track{display:flex;height:100%;transition:transform .52s cubic-bezier(.22,.61,.36,1);}
   .slide{flex:0 0 100%;height:100%;}
-  .card{position:relative;width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;}
+  .card{position:relative;width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;
+    content-visibility:auto;contain-intrinsic-size:100vw 100vh;}
+  /* the card either side of this one is painted up front, so the slide never
+     catches a card mid-render; everything further away stays skipped */
+  .slide.live>.card{content-visibility:visible;}
   .card .glow{position:absolute;inset:0;z-index:0;background:radial-gradient(120% 75% at 12% 0%,rgba(255,255,255,.16),transparent 52%);pointer-events:none;}
   /* official team logo — very subtle watermark bleeding off the right edge */
   .logo-bg{position:absolute;z-index:0;right:-3%;top:50%;transform:translateY(-50%);height:82%;width:50%;pointer-events:none;
@@ -43,7 +47,7 @@
        background:radial-gradient(circle at 50% 48%, rgba(var(--tone),.32), rgba(var(--tone),.12) 54%, transparent 72%);}
   .logo-bg img{position:relative;height:100%;max-width:100%;object-fit:contain;opacity:.3;}
   /* identity top bar */
-  .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:16px;padding:16px 32px 13px;border-bottom:1px solid rgba(128,128,128,.22);}
+  .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:16px;padding:48px 32px 13px;border-bottom:1px solid rgba(128,128,128,.22);}
   .tb-tile{width:58px;height:58px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(0,0,0,.28);padding:7px;overflow:hidden;}
   .tb-logo{width:100%;height:100%;object-fit:contain;}
   .tb-id{display:flex;flex-direction:column;gap:5px;min-width:0;}
@@ -156,6 +160,66 @@
   .mi .dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
   .mi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mi .pts{opacity:.5;font-size:12px;font-variant-numeric:tabular-nums;}
+  /* section tabs, pinned above the deck */
+  .sectabs{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;gap:6px;
+    align-items:center;padding:9px 14px;overflow-x:auto;scrollbar-width:none;
+    background:linear-gradient(180deg,rgba(14,15,18,.92),rgba(14,15,18,.55) 70%,transparent);}
+  .sectabs::-webkit-scrollbar{display:none;}
+  .sectab,.grptab{flex:0 0 auto;font-family:inherit;font-weight:800;cursor:pointer;
+    border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.34);
+    color:#fff;letter-spacing:.4px;white-space:nowrap;}
+  .sectab{font-size:11px;padding:6px 14px;text-transform:uppercase;}
+  .sectab.on{background:var(--teal);border-color:var(--teal);color:var(--teal-ink);}
+  .grptab{font-size:10px;padding:5px 11px;opacity:.72;border-color:rgba(255,255,255,.14);}
+  .grptab:hover{opacity:1;}
+  .grptab.on{opacity:1;background:rgba(19,179,166,.22);border-color:var(--teal);color:#bdf2ec;}
+  /* player card body: portrait beside the numbers his position is judged on */
+  .pbody{position:relative;z-index:1;flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(200px,31%) minmax(0,1fr);gap:22px;
+    padding:10px 32px 92px;align-items:stretch;}
+  .pshot{position:relative;height:100%;min-height:0;display:flex;align-items:flex-end;
+    justify-content:center;margin-bottom:-64px;}
+  .pshot img{max-height:100%;width:100%;max-width:420px;object-fit:contain;object-position:bottom;
+    filter:drop-shadow(0 14px 30px rgba(0,0,0,.45));}
+  .pright{min-width:0;min-height:0;display:flex;flex-direction:column;gap:16px;justify-content:center;}
+  .pstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:0 0 auto;}
+  .pst{background:rgba(0,0,0,.17);border:1px solid rgba(128,128,128,.22);border-radius:14px;
+    padding:11px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .pst b{font-size:clamp(20px,2.7vw,34px);font-weight:900;letter-spacing:-1px;line-height:1;
+    font-variant-numeric:tabular-nums;}
+  .pst span{font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+    opacity:.62;}
+  /* the season, game by game: bar length = the stat, side of the line = the result */
+  .pchart{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px;}
+  .pc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;}
+  .pc-t{opacity:.72;} .pc-max{opacity:.5;white-space:nowrap;}
+  .pc-plot{position:relative;flex:1 1 auto;min-height:74px;max-height:360px;display:flex;align-items:stretch;
+    gap:3px;padding:2px 0;}
+  .pc-col{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  .pc-h{min-height:0;display:flex;justify-content:center;}
+  .pc-h.up{flex:var(--up,1) 1 0;align-items:flex-end;}
+  .pc-h.dn{flex:var(--dn,1) 1 0;align-items:flex-start;}
+  .pc-h i{width:100%;max-width:26px;border-radius:3px;display:block;}
+  .pc-h.up i{border-radius:3px 3px 0 0;} .pc-h.dn i{border-radius:0 0 3px 3px;}
+  .pc-wk{position:absolute;left:-4px;right:-4px;top:calc(var(--upPct,50%) - 7px);height:14px;line-height:14px;
+    text-align:center;font-size:8.5px;font-weight:900;font-variant-numeric:tabular-nums;
+    opacity:.62;pointer-events:none;
+    text-shadow:0 0 3px var(--cardbg,transparent),0 0 3px var(--cardbg,transparent);}
+  .pc-wk.bye,.pc-wk.out{opacity:.28;}
+  .pc-rule{position:absolute;left:0;right:0;top:var(--upPct,50%);height:1.4px;background:currentColor;
+    opacity:.38;}
+  .pc-div{flex:0 0 auto;width:1.4px;margin:0 9px;background:currentColor;opacity:.45;position:relative;}
+  .pc-div span{position:absolute;left:6px;top:20px;font-size:9px;font-weight:900;letter-spacing:.9px;
+    text-transform:uppercase;opacity:.85;white-space:nowrap;}
+  .pc-key{display:flex;gap:14px;font-size:8.5px;font-weight:800;letter-spacing:.9px;
+    text-transform:uppercase;opacity:.5;}
+  .pc-key .won::before,.pc-key .lost::before{content:'';display:inline-block;width:9px;height:9px;
+    border-radius:2px;margin-right:5px;vertical-align:-1px;}
+  .pc-key .won::before{background:currentColor;}
+  .pc-key .lost::before{border:1.4px solid currentColor;}
+  .mhead{padding:9px 12px 4px;font-size:9px;font-weight:800;letter-spacing:1.1px;
+    text-transform:uppercase;opacity:.45;}
   .kbd{width:270px;padding:13px 16px;font-size:13px;}
   .kbd h4{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;opacity:.55;margin-bottom:9px;}
   .kbd .krow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;color:#cfd3d8;}
@@ -168,9 +232,64 @@
     .rgrid{grid-template-columns:repeat(2,1fr);}
   }
   @media(max-width:600px){ .rgrid{grid-template-columns:1fr;} .bar button.pos{min-width:120px;} .pos .nm{display:none;} }
+  /* opening card */
+  .cover{background:linear-gradient(155deg,#151a20 0%,#0d2724 46%,#080d0f 100%);color:#eef1f3;}
+  .cv-wrap{position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;
+    gap:20px;padding:60px 46px 96px;}
+  .cv-head{flex:0 0 auto;max-width:760px;}
+  .cv-kick{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+    color:var(--teal);margin-bottom:12px;}
+  .cv-title{margin:0;font-size:clamp(44px,7.4vw,96px);font-weight:900;letter-spacing:-3px;line-height:.92;}
+  .cv-title em{font-style:normal;color:var(--teal);}
+  .cv-lede{margin:12px 0 0;font-size:15px;line-height:1.5;font-weight:600;color:#b9c1c7;max-width:620px;}
+  .cv-plot{position:relative;flex:1 1 auto;min-height:120px;display:flex;align-items:stretch;gap:4px;}
+  .cv-col{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  .cv-h{min-height:0;display:flex;justify-content:center;}
+  .cv-h.up{flex:var(--up,1) 1 0;align-items:flex-end;}
+  .cv-h.dn{flex:var(--dn,1) 1 0;align-items:flex-start;}
+  .cv-h i{width:100%;max-width:22px;display:block;}
+  .cv-h.up i{border-radius:3px 3px 0 0;} .cv-h.dn i{border-radius:0 0 3px 3px;}
+  .cv-ab{position:absolute;left:0;right:0;top:calc(var(--upPct,50%) - 7px);height:14px;line-height:14px;
+    text-align:center;font-size:8px;font-weight:900;letter-spacing:.2px;opacity:.72;
+    text-shadow:0 0 3px #0d2724,0 0 3px #0d2724;pointer-events:none;}
+  .cv-rule{position:absolute;left:0;right:0;top:var(--upPct,50%);height:1.4px;background:#eef1f3;opacity:.3;}
+  .cv-kpis{flex:0 0 auto;display:flex;gap:34px;flex-wrap:wrap;}
+  .cv-k b{display:block;font-size:26px;font-weight:900;letter-spacing:-1px;line-height:1;
+    font-variant-numeric:tabular-nums;}
+  .cv-k span{font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.55;}
+  @media(max-width:760px){
+    .cv-wrap{padding:52px 18px 88px;gap:14px;}
+    .cv-lede{font-size:13px;} .cv-kpis{gap:18px;} .cv-k b{font-size:19px;}
+    .cv-ab{font-size:6.5px;} .cv-plot{gap:2px;}
+  }
+  /* phones: the portrait shrinks to sit beside the numbers and the chart takes the
+     full width underneath -- 18 weeks need every pixel they can get */
+  @media(max-width:760px){
+    .pcard .topbar{padding:44px 16px 10px;gap:11px;}
+    .pcard .tb-tile{width:40px;height:40px;border-radius:10px;padding:5px;}
+    .pcard .tb-name{font-size:19px;gap:7px;}
+    .pcard .tb-sub{display:none;}
+    .pcard .tb-right{gap:12px;}
+    .pcard .tb-rankbig b{font-size:30px;letter-spacing:-1.5px;}
+    .pcard .tb-rankbig small{font-size:10px;}
+    .pcard .tb-rec{font-size:12px;} .pcard .tb-rec .pf{font-size:8.5px;}
+    .pbody{grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);
+      gap:10px 12px;padding:8px 16px 84px;}
+    .pright{display:contents;}
+    .pshot{grid-column:1;grid-row:1;margin-bottom:0;align-items:center;}
+    .pshot img{max-width:114px;}
+    .pstats{grid-column:2;grid-row:1;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+    .pst{padding:7px 9px;border-radius:10px;gap:2px;}
+    .pst b{font-size:17px;letter-spacing:-.5px;}
+    .pst span{font-size:7.5px;letter-spacing:.4px;}
+    .pchart{grid-column:1/-1;grid-row:2;}
+    .pc-plot{max-height:none;} .pc-h i{max-width:14px;} .pc-col{gap:0;}
+    .pc-wk{font-size:7px;} .pc-div{margin:0 5px;} .pc-div span{font-size:7.5px;left:4px;}
+  }
 </style>
 </head>
 <body>
+  <div class="sectabs" id="sectabs"></div>
   <div class="stage"><div class="track" id="track"></div></div>
   <div class="bar">
     <a class="barlink" href="./index.html" title="Back to Season Tower">⌂</a>
@@ -180,7 +299,7 @@
     <button class="play" id="play" title="Play / pause (space)">▶</button>
     <button id="next" title="Next (→)">›</button>
     <select id="wk" class="wksel" title="Match week — weeks after this are shown as still to play"></select>
-    <button class="pos" id="posbtn" title="Jump to team" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 32</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
+    <button class="pos" id="posbtn" title="Jump to a card" aria-haspopup="listbox"><span class="dot" id="pdot"></span><span class="crumb" id="pcrumb">1 / 205</span><span class="nm" id="pname">—</span><span class="car">▲</span></button>
     <button id="fs" title="Fullscreen (F)">⛶</button>
     <button id="kbdbtn" title="Keyboard shortcuts">⌨</button>
   </div>
@@ -190,7 +309,7 @@
     <div class="krow"><span>Previous / Next</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
     <div class="krow"><span>Play / Pause</span><kbd>Space</kbd></div>
     <div class="krow"><span>Fullscreen</span><kbd>F</kbd></div>
-    <div class="krow"><span>Jump to team</span><kbd>click 1 / 32</kbd></div>
+    <div class="krow"><span>Jump to a card</span><kbd>click the counter</kbd></div>
     <div class="krow"><span>Close menu</span><kbd>Esc</kbd></div>
     <div class="cred">Produced with passion by <a href="https://aguywithascarf.substack.com/" target="_blank" rel="noopener">A guy with a scarf</a> (Carlo De Marchis).</div>
   </div>
@@ -198,6 +317,7 @@
 <script type="module">
 import { TEAMS2025 as TEAMS, RESULTS2025 as RESULTS } from './src/data/schedule-2025.js'
 import { ROSTERS2025 as ROSTERS } from './src/data/rosters-2025.js'
+import { PLAYERS2025 as PLAYERS } from './src/data/players-2025.js'
 
 const TEAL='#13b3a6', RED='#ef4b52', AMBER='#d9a13a'
 
@@ -345,8 +465,24 @@ function panel(abbr,I,soft){
 
 /* ---- build the deck ---- */
 const track=document.getElementById('track')
+/* The deck: every leader first, grouped by position, then the 32 club cards.
+   DECK is the single source of truth for order, so navigation, the jump menu, the
+   section tabs and the hash all read from the same list and cannot disagree. */
+let DECK=[]
 function buildDeck(){
  track.innerHTML=''
+ DECK=[]
+ ;(()=>{ const slide=el('div','slide'); slide.appendChild(coverCard()); track.appendChild(slide)
+   DECK.push({kind:'cover',id:'season',name:'NFL 2025',rank:''}) })()
+ PLAYERS.groups.forEach(g=>{
+  g.ids.forEach((pid,i)=>{
+   const pl=PLAYERS.players[pid]; if(!pl) return
+   const slide=el('div','slide'); slide.appendChild(playerCard(pl,g.label,i+1))
+   track.appendChild(slide)
+   DECK.push({kind:'player',id:pid,group:g.key,label:g.label,name:pl.n,
+              team:pl.team,rank:i+1})
+  })
+ })
  ranked.forEach((abbr,idx)=>{
   const t=TEAMS[abbr], prim=t.primary, I=ink(prim), soft=(I==='#ffffff'?'255,255,255':'0,0,0'), s=stat[abbr]
   const sd=seed[abbr]
@@ -375,34 +511,203 @@ function buildDeck(){
       <div class="rightcol">${rosterCol(abbr,I,soft)}${panel(abbr,I,soft)}</div>
     </div>`
   const slide=el('div','slide'); slide.appendChild(card); track.appendChild(slide)
+  DECK.push({kind:'team',abbr,name:t.name,rank:idx+1})
  })
 }
 
+/* ---- player cards -------------------------------------------------------------
+   Each group shows the numbers its position is actually judged on: a corner's card
+   has no rushing yards on it, a punter's has no touchdowns. [label, category, stat,
+   decimals] -- a null stat means "derive it", handled in statVal below. */
+const STATSET={
+  qb:[['Yards','passing','passingYards',0],['TD','passing','passingTouchdowns',0],
+      ['INT','passing','interceptions',0],['Comp %','passing','completionPct',1],
+      ['Yds/att','passing','yardsPerPassAttempt',1],['Rating','passing','QBRating',1]],
+  rb:[['Rush yds','rushing','rushingYards',0],['TD','rushing','rushingTouchdowns',0],
+      ['Yds/carry','rushing','yardsPerRushAttempt',1],['Carries','rushing','rushingAttempts',0],
+      ['Longest','rushing','longRushing',0],['Rec yds','receiving','receivingYards',0]],
+  wr:[['Rec yds','receiving','receivingYards',0],['Catches','receiving','receptions',0],
+      ['TD','receiving','receivingTouchdowns',0],['Yds/catch','receiving','yardsPerReception',1],
+      ['After catch','receiving','receivingYardsAfterCatch',0],['Longest','receiving','longReception',0]],
+  dl:[['Sacks','defensive','sacks',1],['Tackles for loss','defensive','tacklesForLoss',0],
+      ['Tackles','defensive','totalTackles',0],['Solo','defensive','soloTackles',0],
+      ['Passes def','defensive','passesDefended',0],['Forced fum','general','fumblesForced',0]],
+  lb:[['Tackles','defensive','totalTackles',0],['Solo','defensive','soloTackles',0],
+      ['Sacks','defensive','sacks',1],['Tackles for loss','defensive','tacklesForLoss',0],
+      ['Passes def','defensive','passesDefended',0],['Int','defensiveinterceptions','interceptions',0]],
+  db:[['Passes def','defensive','passesDefended',0],['Int','defensiveinterceptions','interceptions',0],
+      ['Tackles','defensive','totalTackles',0],['Solo','defensive','soloTackles',0],
+      ['Int yards','defensiveinterceptions','interceptionYards',0],
+      ['Forced fum','general','fumblesForced',0]],
+  pk:[['FG made','kicking','fieldGoalsMade',0],['Attempts','kicking','fieldGoalAttempts',0],
+      ['FG %','kicking','fieldGoalPct',1],['Longest','kicking','longFieldGoalMade',0],
+      ['From 50+','kicking','fieldGoalsMade50',0],['Extra pts','kicking','extraPointsMade',0]],
+  p:[['Gross avg','punting','grossAvgPuntYards',1],['Net avg','punting','netAvgPuntYards',1],
+     ['Punts','punting','punts',0],['Inside 20','punting','puntsInside20',0],
+     ['Longest','punting','longPunt',0],['Touchbacks','punting','touchbacks',0]],
+}
+const gkeyOf=p=> p.pos==='P' ? 'p' : (p.pos==='PK'||p.pos==='K') ? 'pk'
+  : (PLAYERS.groups.find(g=>g.ids.includes(p.id))||{}).key || 'qb'
+const setFor=p=> STATSET[gkeyOf(p)] || STATSET.qb
+const statVal=(p,cat,key)=>{ const v=(p.st[cat]||{})[key]; return (v==null)?null:v }
+const fmtStat=(v,dp)=> v==null ? '—'
+  : (dp?Number(v).toFixed(dp):Math.round(v).toLocaleString('en-US'))
+
+/* The one number each group's season is told through, game by game.
+   Cornerbacks are ranked on passes defended but charted on tackles: a chart of
+   0s and 1s says nothing, and tackles is the stat a corner posts every week. */
+const CHARTSTAT={ qb:['passingYards','Passing yards'], rb:['rushingYards','Rushing yards'],
+  wr:['receivingYards','Receiving yards'], dl:['sacks','Sacks'], lb:['totalTackles','Tackles'],
+  db:['totalTackles','Tackles'], pk:['totalKickingPoints','Kicking points'],
+  p:['puntsInside20','Punts inside the 20'] }
+const PORND={1:'WC',2:'DIV',3:'CC',5:'SB'}
+const gameVal=(p,g,key)=>{ const names=PLAYERS.sigs[p.s]||[]; const i=names.indexOf(key)
+  return i<0 ? null : g.v[i] }
+
+/* A player's season in the tower idiom: one bar per game, its LENGTH the stat and its
+   SIDE the result -- wins above the line, losses below, in the opponent's colour. So a
+   career game in a defeat hangs, and a quiet win sits small on top. Weeks he did not
+   play stay as empty slots, because an absence is part of the season too. */
+function playerChart(p,I,soft){
+  const [key,label]=CHARTSTAT[gkeyOf(p)]||CHARTSTAT.qb
+  const log=p.g||[]; if(!log.length) return ''
+  const byWk={}; log.forEach(g=>{ if(!g.p) byWk[g.w]=g })
+  const post=log.filter(g=>g.p)
+  const sched=(TEAMS[p.team]||{}).games||[]
+  const weeks=new Set(sched.map(g=>g.w).filter(w=>w<=18))
+  const slots=[]
+  for(let w=1;w<=18;w++){
+    if(byWk[w]) slots.push(['g',byWk[w],w])
+    else slots.push([weeks.has(w)?'out':'bye',null,w])
+  }
+  if(post.length){ slots.push(['div',null,null]); post.forEach(g=>slots.push(['g',g,g.w])) }
+  let up=0,dn=0; log.forEach(g=>{ const v=gameVal(p,g,key)||0
+    if(g.r==='W'){ if(v>up) up=v } else if(v>dn) dn=v })
+  const max=Math.max(up,dn,1)
+  const best=log.reduce((a,g)=>(gameVal(p,g,key)||0)>(gameVal(p,a,key)||0)?g:a,log[0])
+  const cols=slots.map(([ty,g,w])=>{
+    if(ty==='div') return `<div class="pc-div"><span>Playoffs</span></div>`
+    if(!g) return `<div class="pc-col"><div class="pc-h up"></div><div class="pc-h dn"></div>`
+      +`<div class="pc-wk ${ty}" title="Week ${w} · ${ty==='bye'?'Bye week':'Did not play'}">${ty==='bye'?'·':'–'}</div></div>`
+    const v=gameVal(p,g,key)||0, win=g.r==='W'
+    const o=TEAMS[g.o]||{}, op=o.primary||'#8A8F98'
+    // one scale for the whole chart: each half is as tall as its own biggest game,
+    // so a bar's pixels mean the same above and below the line
+    const h=Math.max(v>0?4:0,Math.round(v/(win?up||max:dn||max)*100))
+    // same grammar as the tower: a win is a solid block in the opponent's colour,
+    // a loss is the pale ghost of one, outlined in it
+    const bar=`<i style="height:${h}%;background:${win?op:mix(op,I,.74)};`
+      +`border:1.8px solid ${win?'rgba('+soft+',.18)':op};box-shadow:0 0 0 1px rgba(${soft},.10)"></i>`
+    const ttl=`${g.p?(g.t||'Playoffs'):'Week '+w} · ${g.h?'vs ':'@ '}${g.o} · ${g.r} ${g.s} · `
+      +`${fmtStat(v,key==='sacks'?1:0)} ${label.toLowerCase()}`
+    return `<div class="pc-col" title="${ttl}">`
+      +`<div class="pc-h up">${win?bar:''}</div><div class="pc-h dn">${win?'':bar}</div>`
+      +`<div class="pc-wk">${g.p?(PORND[w]||'P'):w}</div></div>`
+  }).join('')
+  return `<div class="pchart">
+    <div class="pc-head"><span class="pc-t">${label}, game by game</span>
+      <span class="pc-max">Best ${fmtStat(gameVal(p,best,key),key==='sacks'?1:0)} ${best.h?'vs ':'@ '}${best.o}</span></div>
+    <div class="pc-plot" style="--up:${(up/max).toFixed(3)};--dn:${(dn/max).toFixed(3)};--upPct:${(up/(up+dn||1)*100).toFixed(1)}%">${cols}<div class="pc-rule"></div></div>
+    <div class="pc-key"><span class="won">Won</span><span class="lost">Lost</span></div>
+  </div>`
+}
+
+/* The deck's opening card: the whole league in one breath, in the tower's own grammar
+   -- every club a column, wins above the line and losses below, ranked left to right. */
+function coverCard(){
+  const maxW=Math.max(...ranked.map(a=>stat[a].W),1)
+  const maxL=Math.max(...ranked.map(a=>stat[a].L),1)
+  const cols=ranked.map(a=>{ const t=TEAMS[a], s=stat[a]
+    return `<div class="cv-col" title="${t.name} · ${rec(s)}">
+      <div class="cv-h up"><i style="height:${s.W/maxW*100}%;background:${t.primary}"></i></div>
+      <div class="cv-h dn"><i style="height:${s.L/maxL*100}%;background:${mix(t.primary,'#eef1f3',.74)};border:1.4px solid ${t.primary}"></i></div>
+      <div class="cv-ab">${a}</div></div>` }).join('')
+  const best=ranked[0], games=Object.values(TEAMS).reduce((n,t)=>n+t.games.length,0)/2
+  const kpi=[[ranked.length,'clubs'],[games,'games'],[Object.keys(PLAYERS.players).length,'player cards'],
+             [`${best} ${rec(stat[best])}`,'best record']]
+  const card=el('div','card cover')
+  card.innerHTML=`<div class="glow"></div>
+    <div class="cv-wrap">
+      <div class="cv-head">
+        <div class="cv-kick">A guy with a scarf · season film</div>
+        <h1 class="cv-title">NFL <em>2025</em></h1>
+        <p class="cv-lede">Every club and every leading player as a tower: the bar rises on a
+          win and hangs below the line on a loss, always in the opponent's colour.</p>
+      </div>
+      <div class="cv-plot" style="--up:${maxW};--dn:${maxL};--upPct:${(maxW/(maxW+maxL)*100).toFixed(1)}%">
+        ${cols}<div class="cv-rule"></div></div>
+      <div class="cv-kpis">${kpi.map(([v,l])=>`<div class="cv-k"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+    </div>`
+  return card
+}
+
+/* One card per leader, in the team's colours so a player reads as part of his club. */
+function playerCard(p, gLabel, rank){
+  const t=TEAMS[p.team]||{}, prim=t.primary||'#3a3f47', I=ink(prim)
+  const soft=(I==='#ffffff'?'255,255,255':'0,0,0')
+  const games=statVal(p,'general','gamesPlayed')
+  const card=el('div','card pcard')
+  card.style.setProperty('--cardbg',prim)
+  card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`
+  card.style.color=I
+  card.innerHTML=`<div class="glow"></div>
+    <div class="logo-bg" style="--tone:${I==='#ffffff'?'255,255,255':'18,20,26'}"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="" onerror="this.closest('.logo-bg').remove()"></div>
+    <div class="topbar">
+      <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="${p.team}" onerror="this.onerror=null;this.parentNode.textContent='${p.team}'"></div>
+      <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${p.pos} · ${p.team}</span></div>
+        <div class="tb-sub">NFL · 2025 · ${gLabel} · #${rank} by ${gLabel.toLowerCase()==='specialists'?'their board':'the group stat'}</div></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-right">
+        <span class="tb-rankbig"><small>#</small><b>${rank}</b></span>
+        <div class="tb-rec"><b>${games!=null?games:'—'}</b><br><span class="pf">games played</span></div>
+      </div>
+    </div>
+    <div class="pbody">
+      <div class="pshot"><img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
+      <div class="pright">
+        <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>`
+          <div class="pst"><b>${fmtStat(statVal(p,cat,key),dp)}</b><span>${lab}</span></div>`).join('')}</div>
+        ${playerChart(p,I,soft)}
+      </div>
+    </div>`
+  return card
+}
+
 /* ---- film controls ---- */
-const N=Object.keys(TEAMS).length
+const N=()=>DECK.length
+const firstOf=kind=>Math.max(0,DECK.findIndex(c=>c.kind===kind))
+const firstGroup=key=>Math.max(0,DECK.findIndex(c=>c.group===key))
 const $=id=>document.getElementById(id)
 let idx=0, playing=false, timer=null
 // Deep-link the current card via the URL hash (#DEN or #18) so reload / share reopens it.
 function idxFromHash(){
   const raw=decodeURIComponent((location.hash||'').replace(/^#/,'')).trim()
   if(!raw) return 0
-  const ti=ranked.indexOf(raw.toUpperCase()); if(ti>=0) return ti
-  const n=parseInt(raw,10); if(!isNaN(n)&&n>=1&&n<=N) return n-1
+  const t=DECK.findIndex(c=>c.kind==='team'&&c.abbr===raw.toUpperCase()); if(t>=0) return t
+  const p=DECK.findIndex(c=>c.id===raw); if(p>=0) return p
+  const n=parseInt(raw,10); if(!isNaN(n)&&n>=1&&n<=DECK.length) return n-1
   return 0
 }
 function render(){
   track.style.transform=`translateX(${-idx*100}%)`
-  const abbr=ranked[idx], t=TEAMS[abbr]
-  $('pcrumb').textContent=`${idx+1} / ${N}`
-  $('pname').textContent=t.name.toUpperCase()
-  $('pdot').style.background=t.primary
-  $('prev').disabled=idx===0; $('next').disabled=idx===N-1
-  ;[...menu.children].forEach((c,i)=>c.classList.toggle('cur',i===idx))
-  const want='#'+abbr; if(location.hash!==want) history.replaceState(null,'',want)
+  const c=DECK[idx]; if(!c) return
+  const isT=c.kind==='team', t=isT?TEAMS[c.abbr]:TEAMS[c.team]
+  $('pcrumb').textContent=`${idx+1} / ${DECK.length}`
+  $('pname').textContent=(isT?c.name:c.name).toUpperCase()
+  $('pdot').style.background=(t&&t.primary)||'#888'
+  $('prev').disabled=idx===0; $('next').disabled=idx===DECK.length-1
+  ;[...track.children].forEach((n,i)=>n.classList.toggle('live',Math.abs(i-idx)<=1))
+  buildMenu()
+  // the section tab for whatever we are looking at
+  ;[...document.querySelectorAll('.sectab')].forEach(b=>
+    b.classList.toggle('on', b.dataset.kind===c.kind))
+  ;[...document.querySelectorAll('.grptab')].forEach(b=>
+    b.classList.toggle('on', b.dataset.group===c.group))
+  const want='#'+(isT?c.abbr:c.id); if(location.hash!==want) history.replaceState(null,'',want)
 }
-function go(i){ idx=Math.max(0,Math.min(N-1,i)); render() }
+function go(i){ idx=Math.max(0,Math.min(DECK.length-1,i)); render() }
 function setPlay(p){ playing=p; $('play').textContent=p?'⏸':'▶'; clearInterval(timer)
-  if(p) timer=setInterval(()=>{ if(idx>=N-1){setPlay(false);return} go(idx+1) },3500) }
+  if(p) timer=setInterval(()=>{ if(idx>=DECK.length-1){setPlay(false);return} go(idx+1) },3500) }
 $('prev').onclick=()=>{setPlay(false);go(idx-1)}
 $('next').onclick=()=>{setPlay(false);go(idx+1)}
 $('restart').onclick=()=>{setPlay(false);go(0)}
@@ -410,18 +715,56 @@ $('play').onclick=()=>setPlay(!playing)
 
 /* jump-to-team menu */
 const menu=$('menu'), kbd=$('kbd')
+/* The jump menu lists the section you are in -- one position group, or all 32 clubs.
+   A single list of all 204 cards ran thirteen columns wide and was useless; the tab
+   bar is how you change section, so the menu only has to serve the one you are in. */
 function buildMenu(){
  menu.innerHTML=''
- ranked.forEach((abbr,i)=>{
-  const t=TEAMS[abbr], s=stat[abbr]
-  const mi=el('div','mi'); mi.setAttribute('role','option')
-  mi.innerHTML=`<span class="r">${i+1}</span><span class="dot" style="background:${t.primary}"></span><span class="nm">${t.name}</span><span class="pts">${rec(s)}</span>`
+ const cur=DECK[idx]; if(!cur) return
+ const toc=cur.kind==='cover'        // the opening card gets a table of contents
+ const rows=[]
+ if(toc){
+  PLAYERS.groups.forEach(g=>{ const i=firstGroup(g.key)
+    if(i>0) rows.push([{name:g.label,rank:'',team:DECK[i].team},i,`${g.ids.length}`]) })
+  const t=firstOf('team'); if(t>0) rows.push([{name:'Clubs',rank:'',abbr:DECK[t].abbr},t,'32'])
+ } else DECK.forEach((c,i)=>{
+   if(cur.kind==='team' ? c.kind==='team' : c.group===cur.group)
+     rows.push([c,i,c.kind==='team'?rec(stat[c.abbr]):c.team])
+ })
+ const h=el('div','mhead')
+ h.textContent=toc?`${DECK.length} cards`:`${cur.kind==='team'?'Clubs':cur.label} · ${rows.length} cards`
+ menu.appendChild(h)
+ rows.forEach(([c,i,right])=>{
+  const t=c.abbr?TEAMS[c.abbr]:TEAMS[c.team]
+  const mi=el('div','mi'); mi.setAttribute('role','option'); mi.dataset.i=i
+  if(i===idx) mi.classList.add('cur')
+  mi.innerHTML=`<span class="r">${c.rank}</span><span class="dot" style="background:${(t&&t.primary)||'#888'}"></span><span class="nm">${c.name}</span><span class="pts">${right}</span>`
   mi.onclick=()=>{ setPlay(false); go(i); closePops() }
   menu.appendChild(mi)
  })
 }
+/* Season / Players / Clubs, the same shape as the NBA film's section tabs. */
+function buildTabs(){
+  const bar=$('sectabs'); if(!bar) return
+  bar.innerHTML=''
+  const tabs=[['Season','cover',()=>firstOf('cover')],
+              ['Players','player',()=>firstOf('player')],
+              ['Clubs','team',()=>firstOf('team')]]
+  tabs.forEach(([lab,kind,at])=>{
+    const b=el('button','sectab'); b.textContent=lab; b.dataset.kind=kind
+    b.onclick=()=>{ setPlay(false); go(at()) }
+    bar.appendChild(b)
+  })
+  // one chip per position group, so a reader can land straight on the receivers
+  PLAYERS.groups.forEach(g=>{
+    const b=el('button','grptab'); b.textContent=g.label; b.title=`${g.ids.length} cards`
+    b.dataset.group=g.key
+    b.onclick=()=>{ setPlay(false); go(firstGroup(g.key)) }
+    bar.appendChild(b)
+  })
+}
 function closePops(){ menu.classList.remove('open'); kbd.classList.remove('open') }
-function toggle(node){ const open=!node.classList.contains('open'); closePops(); if(open){ node.classList.add('open'); if(node===menu){const c=menu.children[idx]; if(c)c.scrollIntoView({block:'nearest'})} } }
+function toggle(node){ const open=!node.classList.contains('open'); closePops(); if(open){ node.classList.add('open'); if(node===menu){const c=menu.querySelector('.mi.cur'); if(c)c.scrollIntoView({block:'nearest'})} } }
 $('posbtn').onclick=e=>{ e.stopPropagation(); toggle(menu) }
 $('kbdbtn').onclick=e=>{ e.stopPropagation(); toggle(kbd) }
 document.addEventListener('click',e=>{ if(!e.target.closest('.pop')&&!e.target.closest('#posbtn')&&!e.target.closest('#kbdbtn')) closePops() })
@@ -453,12 +796,12 @@ const wk=$('wk')
 for(let w=MAXW; w>=1; w--){ const o=document.createElement('option'); o.value=w; o.textContent=w>=MAXW?'Full':('Wk '+w); wk.appendChild(o) }
 wk.value=MAXW
 function rebuild(week){
-  computeStats(week); buildDeck(); buildMenu(); render()   // frozen order — stay on the current card
+  computeStats(week); buildDeck(); buildTabs(); render()   // frozen order — stay on the current card
 }
 wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }
 
 computeStats(MAXW); freezeRanking()    // ranking + seeds frozen from the full season
-buildDeck(); buildMenu()
+buildDeck(); buildTabs()
 idx=idxFromHash()
 render()
 </script>
