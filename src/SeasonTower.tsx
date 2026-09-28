@@ -591,7 +591,10 @@ export class SeasonTower extends React.Component<Props, State> {
       segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'), segSosStyle: seg(rankBy === 'sos'),
       // Only a live season with ratings loaded has a "remaining" schedule to rate.
       showSos: sosAvail,
-      rankSos: () => this.setState({ rankBy: 'sos' }, () => this.syncHash()),
+      // Choosing Schedule lands on League: "who has the hardest run-in" is a 1-32 answer, and
+      // inside divisions it splits into eight four-team lists. Only the click does this --
+      // the grouping can be changed back afterwards, and a shared #…/div/sos link opens as sent.
+      rankSos: () => this.setState({ rankBy: 'sos', groupBy: 'league' }, () => this.syncHash()),
       grpLeague: () => this.setState({ groupBy: 'league' }, () => this.syncHash()), grpConf: () => this.setState({ groupBy: 'conf' }, () => this.syncHash()), grpDiv: () => this.setState({ groupBy: 'div' }, () => this.syncHash()),
       rankPct: () => this.setState({ rankBy: 'pct' }, () => this.syncHash()), rankWins: () => this.setState({ rankBy: 'wins' }, () => this.syncHash()),
       onPlay: () => this.togglePlay(),
