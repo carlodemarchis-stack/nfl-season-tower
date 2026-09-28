@@ -1015,7 +1015,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     {v.showSos && <>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Rank by Schedule</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> is coloured by how tough its run-in is: <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows how tough its run-in is — longer for a harder schedule, and coloured <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest.</div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>
                         <span style={{ flex: '0 0 auto', marginTop: '2px', width: '30px', height: '17px', borderRadius: '3px', border: '1px solid #D9DCE1', background: 'linear-gradient(to right,#15181d 70%,transparent 70%) left bottom/100% 3px no-repeat,#fff', fontSize: '8px', fontWeight: 800, color: '#97233F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ARI</span>
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
@@ -1055,7 +1055,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </div>
                 <div style={css(t.labelStyle)} onClick={t.onLabel} title={t.labelTitle}>
                   {t.sosF != null
-                    ? <span style={{ display: 'block', width: '72%', height: '5px', borderRadius: '3px', background: t.sosColor }} />
+                    ? <Meter f={t.sosF} w="72%" h={5} c={t.sosColor} />
                     : <span style={css(t.rankStyle)}>{t.rank}</span>}
                   <span style={css(t.abbrStyle)}>{t.abbr}</span>
                   <span style={css(t.recStyle)}>{t.recordStr}</span>
@@ -1375,11 +1375,11 @@ export class SeasonTower extends React.Component<Props, State> {
 // A single game cell — opponent headline + score/week line, with the away `@` marker as a
 // smaller glyph and the winning score number emphasized.
 // The one strength meter used everywhere: ink on a pale track, the fill a 0..1 fraction.
-function Meter({ f, w = 44, h = 4 }: { f: number, w?: number | string, h?: number }) {
+function Meter({ f, w = 44, h = 4, c = '#15181d' }: { f: number, w?: number | string, h?: number, c?: string }) {
   return (
     <span style={{ display: 'inline-block', height: h + 'px', borderRadius: h / 2 + 'px', background: '#E4E7EB', overflow: 'hidden', verticalAlign: 'middle',
       ...(w === 'grow' ? { flex: '1 1 auto', minWidth: 0 } : { flex: '0 0 auto', width: typeof w === 'number' ? w + 'px' : w }) }}>
-      <span style={{ display: 'block', height: '100%', width: Math.round(Math.max(0, Math.min(1, f)) * 100) + '%', background: '#15181d', borderRadius: h / 2 + 'px' }} />
+      <span style={{ display: 'block', height: '100%', width: Math.round(Math.max(0, Math.min(1, f)) * 100) + '%', background: c, borderRadius: h / 2 + 'px' }} />
     </span>
   )
 }
