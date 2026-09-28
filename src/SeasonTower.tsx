@@ -883,7 +883,9 @@ export class SeasonTower extends React.Component<Props, State> {
       const op = (T[pop.opp] && T[pop.opp].primary) || '#8A8F98'
       popTeamColor = tp; popOppColor = op; popTeamTxt = this.contrast(tp); popOppTxt = this.contrast(op)
       popTeamName = (T[pop.abbr] && T[pop.abbr].name) || pop.abbr; popOppName = pop.oppFull || pop.opp
-      popStrA = this.fpiOf(pop.abbr); popStrB = this.fpiOf(pop.opp)
+      // Ratings only on games still to play. They are today's numbers: on a played game they
+      // already contain the result, so they would describe the game with its own outcome.
+      if (!r) { popStrA = this.fpiOf(pop.abbr); popStrB = this.fpiOf(pop.opp) }
       // Who is favoured, from the rating gap: FPI is points vs an average team, so the gap is
       // a neutral-field margin; 13.5 points is the usual spread of NFL results around it.
       // Upcoming games only -- on a played game today's ratings already contain the result.
