@@ -303,8 +303,15 @@ export class SeasonTower extends React.Component<Props, State> {
     const xs = Object.values(F).map((x: any) => x.fpi), lo = Math.min(...xs), hi = Math.max(...xs)
     const v = F[ab].fpi
     const f0 = (v - lo) / ((hi - lo) || 1), color = this.toughColor(f0)
-    // colour = how tough this team is to face: strongest red, weakest green
-    return { v, rank: F[ab].rank, rankTxt: this.ordinal(F[ab].rank), f: Math.max(0.06, f0), f0, color,
+    const r = F[ab].rank
+    // As an OPPONENT: how hard a game against this team is -- green to red, plus a word.
+    const word = r <= 6 ? 'very hard' : r <= 13 ? 'hard' : r <= 19 ? 'average' : r <= 26 ? 'easier' : 'easy'
+    // As ITSELF: signed distance from an average team, -1..1 of the league's widest gap,
+    // drawn either side of a centre line and never coloured -- a strong team is good news or
+    // bad news depending on which side you are on.
+    const amax = Math.max(Math.abs(lo), Math.abs(hi)) || 1
+    const vs = Math.abs(v) < 0.5 ? 'about an average team' : `${Math.abs(v).toFixed(1)} points ${v > 0 ? 'better' : 'worse'} than an average team`
+    return { v, rank: r, rankTxt: this.ordinal(r), f: Math.max(0.06, f0), f0, color, word, sf: v / amax, vs,
       track: this.mix(color, '#ffffff', 0.8), txt: `FPI ${v > 0 ? '+' : ''}${v.toFixed(1)}` }
   }
   // Where a team's remaining schedule sits in the league: fraction 0 (easiest) .. 1 (hardest),
@@ -328,6 +335,12 @@ export class SeasonTower extends React.Component<Props, State> {
     const G = [46, 158, 91], Y = [232, 185, 49], R = [217, 68, 54]
     const [a, b, t] = f < 0.5 ? [G, Y, f / 0.5] : [Y, R, (f - 0.5) / 0.5]
     return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('')
+  }
+  // Standard normal CDF (Abramowitz-Stegun 7.1.26), for turning a rating gap into a chance.
+  normCdf(x: number) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2)
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x / 2)
+    return x >= 0 ? (1 + y) / 2 : (1 - y) / 2
   }
   ordinal(n: number) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]) }
   infer(us: number, them: number) { return us > them ? 'W' : us < them ? 'L' : 'T' }
@@ -857,7 +870,7 @@ export class SeasonTower extends React.Component<Props, State> {
     let popWeek = '', popHa = '', popResBadge = '', popResStyle = '', popMetaShow = false
     let popTeamColor = '#8A8F98', popOppColor = '#8A8F98', popTeamTxt = '#fff', popOppTxt = '#fff'
     let popHasDetail = false; const popQ: Dict[] = []; let popRowT: Dict[] = []; let popRowO: Dict[] = []; let popStats: Dict[] = []; let popLineShow = false
-    let popStrA: Dict | null = null, popStrB: Dict | null = null
+    let popStrA: Dict | null = null, popStrB: Dict | null = null, popOdds: Dict | null = null
     let popTeamName = '', popOppName = '', popScoreA = '—', popScoreB = '—', popUW = '', popTW = '', popTeamDim = '', popOppDim = '', popAccentStyle = ''; let popChips: Dict[] = []
     if (pop) {
       const r = this.getRes(pop.abbr, pop.w)
@@ -871,6 +884,15 @@ export class SeasonTower extends React.Component<Props, State> {
       popTeamColor = tp; popOppColor = op; popTeamTxt = this.contrast(tp); popOppTxt = this.contrast(op)
       popTeamName = (T[pop.abbr] && T[pop.abbr].name) || pop.abbr; popOppName = pop.oppFull || pop.opp
       popStrA = this.fpiOf(pop.abbr); popStrB = this.fpiOf(pop.opp)
+      // Who is favoured, from the rating gap: FPI is points vs an average team, so the gap is
+      // a neutral-field margin; 13.5 points is the usual spread of NFL results around it.
+      // Upcoming games only -- on a played game today's ratings already contain the result.
+      if (!r && popStrA && popStrB) {
+        const gap = popStrA.v - popStrB.v, pA = Math.round(this.normCdf(gap / 13.5) * 100)
+        const fav = gap >= 0 ? pop.abbr : pop.opp
+        popOdds = { pA, pB: 100 - pA,
+          line: Math.abs(gap) < 0.5 ? 'Even on a neutral field' : `${fav} by about ${Math.abs(gap).toFixed(1)} on a neutral field` }
+      }
       popAccentStyle = `height:5px;background:linear-gradient(90deg,${tp} 0%,${tp} 46%,${op} 54%,${op} 100%);`
       if (r) {
         popScoreA = String(r.us); popScoreB = String(r.them)
@@ -913,7 +935,7 @@ export class SeasonTower extends React.Component<Props, State> {
       ...base, loading: false, orient, teamsSorted,
       popWeek, popHa, popResBadge, popResStyle, popMetaShow,
       popTeamColor, popOppColor, popTeamTxt, popOppTxt,
-      popStrA, popStrB, popTeamName, popOppName, popScoreA, popScoreB, popUW, popTW, popTeamDim, popOppDim, popAccentStyle, popChips,
+      popStrA, popStrB, popOdds, popTeamName, popOppName, popScoreA, popScoreB, popUW, popTW, popTeamDim, popOppDim, popAccentStyle, popChips,
       popHasDetail, popQ, popRowT, popRowO, popStats, popLineShow, canEdit,
       showBaseline: false,
       baselineStyle: `position:absolute;left:16px;right:16px;top:${6 + abovePxFit}px;height:0;border-top:2px dashed #C4C8CE;z-index:1;pointer-events:none;`,
@@ -1021,11 +1043,12 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     {v.showSos && <>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Rank by Schedule</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows how tough its run-in is — longer for a harder schedule, and coloured <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest. The same colours rate a single team in the team and game cards: red is tough to face, green is not.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows how tough its run-in is — longer for a harder schedule, and coloured <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest.</div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>
                         <span style={{ flex: '0 0 auto', marginTop: '2px', width: '30px', height: '17px', borderRadius: '3px', border: '1px solid #D9DCE1', background: 'linear-gradient(to right,#15181d 70%,transparent 70%) left bottom/100% 3px no-repeat,#fff', fontSize: '8px', fontWeight: 800, color: '#97233F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ARI</span>
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
                       </div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>The rule everywhere: a <b>coloured bar</b> is how hard something is <b>for the team you’re looking at</b>. A team’s <b>own strength</b> is drawn differently — a grey bar growing either side of a centre line, the average team. Game cards also show <b>who’s favoured</b>, from the gap between the two ratings, on a neutral field.</div>
                     </>}
                     <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
                     {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Game box score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
@@ -1090,7 +1113,6 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', textAlign: 'center', ...css(v.popTeamDim) }}>
                       <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: v.popTeamColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: v.popTeamTxt, fontSize: '11px', fontWeight: 900, letterSpacing: '.3px' }}>{v.popTeam}</span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#727781', lineHeight: 1.25, maxWidth: '110px' }}>{v.popTeamName}</span>
-                      {v.popStrA && <PopStrength s={v.popStrA} />}
                     </div>
                     <span style={{ fontSize: '46px', fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: '#15181d', ...css(v.popUW) }}>{v.popScoreA}</span>
                     <span style={{ fontSize: '20px', fontWeight: 400, color: '#D0D3D8' }}>–</span>
@@ -1098,13 +1120,34 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', textAlign: 'center', ...css(v.popOppDim) }}>
                       <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: v.popOppColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: v.popOppTxt, fontSize: '11px', fontWeight: 900, letterSpacing: '.3px' }}>{v.popOpp}</span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#727781', lineHeight: 1.25, maxWidth: '110px' }}>{v.popOppName}</span>
-                      {v.popStrB && <PopStrength s={v.popStrB} />}
                     </div>
                   </div>
-                  {(v.popStrA || v.popStrB) && (
-                    <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '10px', fontWeight: 600, color: '#9298a1', lineHeight: 1.4 }}>
-                      ESPN FPI: points better than an average team · today’s rating
+                  {v.popOdds && (
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
+                        <span style={{ width: v.popOdds.pA + '%', background: v.popTeamColor }} />
+                        <span style={{ width: v.popOdds.pB + '%', background: v.popOppColor }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '10.5px', fontWeight: 700, color: '#727781', fontVariantNumeric: 'tabular-nums' }}>
+                        <span>{v.popOdds.pA}%</span><span>{v.popOdds.pB}%</span>
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: '4px', fontSize: '13px', fontWeight: 800, color: '#15181d' }}>{v.popOdds.line}</div>
                     </div>
+                  )}
+                  {(v.popStrA || v.popStrB) && (
+                    <>
+                      <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                        {[v.popStrA, v.popStrB].map((st: any, i: number) => (
+                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            {st && <StrengthBar sf={st.sf} />}
+                            {st && <span title={`ESPN FPI · ${st.vs}`} style={{ fontSize: '10px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{st.v > 0 ? '+' : ''}{st.v.toFixed(1)} · {st.rankTxt}</span>}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: '6px', fontSize: '10px', fontWeight: 600, color: '#9298a1', lineHeight: 1.4 }}>
+                        Team strength vs an average team · ESPN FPI, today’s rating
+                      </div>
+                    </>
                   )}
                   <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', fontWeight: 700, color: '#15181d' }}>{v.popWeek} <span style={{ color: '#9298a1', fontWeight: 500 }}>{v.popHa}</span></div>
                   {v.popMetaShow && (
@@ -1266,17 +1309,30 @@ export class SeasonTower extends React.Component<Props, State> {
                       {v.tm.sos && (
                         <div style={{ marginBottom: '16px', padding: '12px 14px', background: '#fff', border: '1px solid #EDEFF2', borderRadius: '12px' }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-                            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Remaining schedule</span>
+                            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Schedule difficulty</span>
                             <span style={{ fontSize: '13px', fontWeight: 900, color: '#15181d' }}>{v.tm.sos.words}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
+                          <div title={v.tm.sos.sub.charAt(0).toUpperCase() + v.tm.sos.sub.slice(1)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
                             <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>easiest</span>
                             <Meter f={v.tm.sos.f} w="grow" h={6} c={v.tm.sos.color} t={v.tm.sos.track} />
                             <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>hardest</span>
                           </div>
-                          <div style={{ marginTop: '7px', fontSize: '11px', fontWeight: 600, color: '#727781' }}>
-                            {v.tm.sos.sub.charAt(0).toUpperCase() + v.tm.sos.sub.slice(1)}{v.tm.own ? ` · ${v.tm.abbr} itself: ${v.tm.own.txt} (${v.tm.own.rankTxt} of 32)` : ''}
-                          </div>
+                          {v.tm.own && (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginTop: '12px', paddingTop: '11px', borderTop: '1px solid #F1F2F4' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Team strength · {v.tm.abbr}</span>
+                                <span style={{ fontSize: '13px', fontWeight: 900, color: '#15181d' }}>{v.tm.own.rankTxt} of 32</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
+                                <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>worse</span>
+                                <span style={{ flex: '1 1 auto', minWidth: 0 }}><StrengthBar sf={v.tm.own.sf} h={6} /></span>
+                                <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>better</span>
+                              </div>
+                              <div style={{ marginTop: '7px', fontSize: '11px', fontWeight: 600, color: '#727781', textAlign: 'center' }}>
+                                {v.tm.own.vs.charAt(0).toUpperCase() + v.tm.own.vs.slice(1)} · ESPN FPI
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                       {v.tm.chart && (() => { const c = v.tm.chart; const A = v.tm.chartAccent; return (
@@ -1322,7 +1378,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <div key={i} onClick={g.onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 0', borderTop: '1px solid #F3F4F6', cursor: 'pointer' }}>
                           <span style={{ flex: '0 0 42px', fontSize: '11px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{g.w}</span>
                           <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#15181d' }}><span style={{ color: '#B0B4BC', fontWeight: 600 }}>{g.ha}</span> {g.opp}</span>
-                          {g.str && <span title={`${g.opp} ${g.str.txt} · ${g.str.rankTxt} of 32 by ESPN FPI`} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}><Meter f={g.str.f} w={40} c={g.str.color} t={g.str.track} />{g.str.txt}</span>}
+                          {g.str && <span title={`${g.opp}: ${g.str.txt}, ${g.str.rankTxt} of 32 — ${g.str.vs}`} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10.5px', fontWeight: 700, color: '#9298a1' }}><Meter f={g.str.f} w={40} c={g.str.color} t={g.str.track} /><span style={{ minWidth: '52px' }}>{g.str.word}</span></span>}
                           {!g.str && <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#5c616b', fontVariantNumeric: 'tabular-nums' }}>{g.score}</span>}
                           <span style={css(g.badgeStyle)}>{g.badge}</span>
                         </div>
@@ -1395,13 +1451,16 @@ function Meter({ f, w = 44, h = 4, c = '#15181d', t = '#E4E7EB' }: { f: number, 
   )
 }
 
-// Under each team in the game pop-up: its ESPN rating, as the same meter the tower uses.
-function PopStrength({ s }: { s: any }) {
+// A team's own strength: grows left (worse) or right (better) from a centre line that marks
+// an average team. Deliberately a different shape from the fill Meter and never coloured --
+// the fill bar means "how hard for this team", this one means "how good is this team".
+function StrengthBar({ sf, w = '100%', h = 5 }: { sf: number, w?: number | string, h?: number }) {
+  const half = Math.min(1, Math.abs(sf)) * 50
   return (
-    <span title={`ESPN FPI ${s.txt.slice(4)} · ${s.rankTxt} of 32 — points it would beat an average team by`}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-      <Meter f={s.f} w={64} c={s.color} t={s.track} />
-      <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{s.txt} · {s.rankTxt}</span>
+    <span style={{ position: 'relative', display: 'block', width: typeof w === 'number' ? w + 'px' : w, height: h + 'px', borderRadius: h / 2 + 'px', background: '#E4E7EB' }}>
+      <span style={{ position: 'absolute', top: 0, height: '100%', width: half + '%', background: '#15181d',
+        ...(sf >= 0 ? { left: '50%', borderRadius: `0 ${h / 2}px ${h / 2}px 0` } : { right: '50%', borderRadius: `${h / 2}px 0 0 ${h / 2}px` }) }} />
+      <span style={{ position: 'absolute', left: 'calc(50% - 0.5px)', top: -3, width: '1px', height: h + 6 + 'px', background: '#9298a1' }} />
     </span>
   )
 }
