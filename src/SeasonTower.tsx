@@ -315,8 +315,16 @@ export class SeasonTower extends React.Component<Props, State> {
     const lo = Math.min(...vs), hi = Math.max(...vs)
     const hard = m.rank <= 16
     const words = hard ? `${this.ordinal(m.rank)} hardest of 32` : `${this.ordinal(33 - m.rank)} easiest of 32`
-    return { ...m, f: Math.max(0.06, (m.v - lo) / ((hi - lo) || 1)), words,
+    const f0 = (m.v - lo) / ((hi - lo) || 1)
+    return { ...m, f0, f: Math.max(0.06, f0), words,
       sub: `avg opponent FPI ${m.v > 0 ? '+' : ''}${m.v.toFixed(1)} over ${m.n} game${m.n === 1 ? '' : 's'}` }
+  }
+  // Green (easiest run-in) -> yellow -> red (hardest), continuous rather than three steps,
+  // so 1st and 8th hardest are both red but not the same red.
+  toughColor(f: number) {
+    const G = [46, 158, 91], Y = [232, 185, 49], R = [217, 68, 54]
+    const [a, b, t] = f < 0.5 ? [G, Y, f / 0.5] : [Y, R, (f - 0.5) / 0.5]
+    return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('')
   }
   ordinal(n: number) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]) }
   infer(us: number, them: number) { return us > them ? 'W' : us < them ? 'L' : 'T' }
@@ -810,7 +818,7 @@ export class SeasonTower extends React.Component<Props, State> {
         recStyle = 'font-size:11px;color:#3a3f47;font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto;'
       }
       return { abbr: t.abbr, rank: rankText, recordStr,
-        sosF: sosM ? sosM.f : null,
+        sosF: sosM ? sosM.f : null, sosColor: sosM ? this.toughColor(sosM.f0) : null,
         labelTitle: sosM ? `${t.name} · remaining schedule ${sosM.words} · ${sosM.sub}` : t.name, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
     })
 
@@ -1007,7 +1015,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     {v.showSos && <>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Rank by Schedule</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows where its run-in sits — full for the hardest in the league, nearly empty for the easiest.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> is coloured by how tough its run-in is: <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest.</div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>
                         <span style={{ flex: '0 0 auto', marginTop: '2px', width: '30px', height: '17px', borderRadius: '3px', border: '1px solid #D9DCE1', background: 'linear-gradient(to right,#15181d 70%,transparent 70%) left bottom/100% 3px no-repeat,#fff', fontSize: '8px', fontWeight: 800, color: '#97233F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ARI</span>
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
@@ -1046,7 +1054,9 @@ export class SeasonTower extends React.Component<Props, State> {
                   {t.z1.map((c: any) => <Cell key={c.key} c={c} />)}
                 </div>
                 <div style={css(t.labelStyle)} onClick={t.onLabel} title={t.labelTitle}>
-                  {t.sosF != null ? <Meter f={t.sosF} w="72%" h={4} /> : <span style={css(t.rankStyle)}>{t.rank}</span>}
+                  {t.sosF != null
+                    ? <span style={{ display: 'block', width: '72%', height: '5px', borderRadius: '3px', background: t.sosColor }} />
+                    : <span style={css(t.rankStyle)}>{t.rank}</span>}
                   <span style={css(t.abbrStyle)}>{t.abbr}</span>
                   <span style={css(t.recStyle)}>{t.recordStr}</span>
                 </div>
