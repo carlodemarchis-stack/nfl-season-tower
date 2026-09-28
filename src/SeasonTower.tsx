@@ -109,7 +109,7 @@ export class SeasonTower extends React.Component<Props, State> {
   state: State = {
     TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
-    userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'roster', rUnit: 'all',
+    userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'schedule', rUnit: 'all',
     rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false, moreOpen: false,
     groupBy: 'div', rankBy: 'wins',
     ...readHash(),
@@ -295,6 +295,29 @@ export class SeasonTower extends React.Component<Props, State> {
       .forEach((k, i) => { out[k].rank = i + 1 })
     return out
   }
+  // A team's own FPI (2026 only) and where it sits between the league's weakest and strongest.
+  fpiOf(ab: string): Dict | null {
+    if (this.season() !== '2026') return null
+    const F = this.state.FPI26 && this.state.FPI26.teams
+    if (!F || !F[ab]) return null
+    const xs = Object.values(F).map((x: any) => x.fpi), lo = Math.min(...xs), hi = Math.max(...xs)
+    const v = F[ab].fpi
+    return { v, rank: F[ab].rank, rankTxt: this.ordinal(F[ab].rank), f: Math.max(0.06, (v - lo) / ((hi - lo) || 1)), txt: `FPI ${v > 0 ? '+' : ''}${v.toFixed(1)}` }
+  }
+  // Where a team's remaining schedule sits in the league: fraction 0 (easiest) .. 1 (hardest),
+  // plus the words for it. Scaled across the 32 teams' own SOS values, not the FPI range --
+  // run-ins differ by a couple of points at most, and on the FPI scale every bar would look alike.
+  sosOf(ab: string, sos?: Dict | null): Dict | null {
+    const all = sos === undefined ? this.remainingSos() : sos
+    const m = all && all[ab]
+    if (!m || m.v == null) return null
+    const vs = Object.values(all!).map((x: any) => x.v).filter((x: any) => x != null) as number[]
+    const lo = Math.min(...vs), hi = Math.max(...vs)
+    const hard = m.rank <= 16
+    const words = hard ? `${this.ordinal(m.rank)} hardest of 32` : `${this.ordinal(33 - m.rank)} easiest of 32`
+    return { ...m, f: Math.max(0.06, (m.v - lo) / ((hi - lo) || 1)), words,
+      sub: `avg opponent FPI ${m.v > 0 ? '+' : ''}${m.v.toFixed(1)} over ${m.n} game${m.n === 1 ? '' : 's'}` }
+  }
   ordinal(n: number) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]) }
   infer(us: number, them: number) { return us > them ? 'W' : us < them ? 'L' : 'T' }
   pn(v: any) { if (v === '' || v == null) return null; const n = parseInt(v, 10); return Number.isNaN(n) ? null : n }
@@ -329,7 +352,7 @@ export class SeasonTower extends React.Component<Props, State> {
   }
   closePop() { this.setState({ pop: null }) }
 
-  openTeam(abbr: string) { this.setState({ teamPop: abbr, teamTab: 'roster', rUnit: 'all', rQuery: '', rPos: 'all', rPosOpen: false }) }
+  openTeam(abbr: string) { this.setState({ teamPop: abbr, teamTab: 'schedule', rUnit: 'all', rQuery: '', rPos: 'all', rPosOpen: false }) }
   closeTeam() { this.setState({ teamPop: null }) }
   teamRecord(abbr: string) {
     const t = this.activeTeams()![abbr]; let W = 0, L = 0, Ti = 0
@@ -489,15 +512,11 @@ export class SeasonTower extends React.Component<Props, State> {
       tabRoster: this.state.teamTab === 'roster', tabSched: this.state.teamTab === 'schedule', tabInfo: this.state.teamTab === 'info',
       tRoster: this.teamTabStyle('roster'), tSched: this.teamTabStyle('schedule'), tInfo: this.teamTabStyle('info'),
       sched: this.buildTeamSchedule(abbr),
+      sos: this.sosOf(abbr), own: this.fpiOf(abbr),
       infoRows: [{ k: 'Head coach', v: (rost && rost.coach) || '—' }, { k: 'Division', v: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : 'West'}` }, { k: 'Record', v: rec.str },
         ...(() => {
-          const sos = this.remainingSos(), m = sos && sos[abbr]
-          if (!m || m.v == null) return []
-          const tone = m.rank <= 8 ? 'hardest' : m.rank >= 25 ? 'easiest' : null
-          return [{ k: 'Remaining schedule', v: tone
-            ? `${this.ordinal(tone === 'hardest' ? m.rank : 33 - m.rank)} ${tone} of 32`
-            : `${this.ordinal(m.rank)} hardest of 32` },
-          { k: 'Avg opponent FPI', v: `${m.v > 0 ? '+' : ''}${m.v.toFixed(1)} over ${m.n} game${m.n === 1 ? '' : 's'}` }]
+          const m = this.sosOf(abbr)
+          return m ? [{ k: 'Remaining schedule', v: m.words }, { k: 'Avg opponent FPI', v: m.sub.replace('avg opponent FPI ', '') }] : []
         })(),
         { k: 'Roster size', v: String((rost && rost.count) || 0) }],
     }
@@ -517,6 +536,7 @@ export class SeasonTower extends React.Component<Props, State> {
         w: 'Wk ' + g.w, ha: g.ha === 'H' ? 'vs' : '@', opp: g.opp,
         score: r ? `${r.us}–${r.them}` : '—',
         badge: res || '—',
+        str: !r ? this.fpiOf(g.opp) : null,
         badgeStyle: `flex:0 0 26px;text-align:center;font-size:10px;font-weight:800;color:${c[1]};background:${c[0]};border-radius:6px;padding:3px 0;`,
         onClick: () => this.setState({ teamPop: null, pop: { abbr, w: g.w, opp: g.opp, oppFull: g.oppFull, ha: g.ha, net: g.net, et: g.et } }),
       }
@@ -737,7 +757,10 @@ export class SeasonTower extends React.Component<Props, State> {
       const t = e.t, prim = t.primary, txt = this.contrast(prim)
       const isGroupStart = grouped && i > 0 && groupKey(list[i - 1].t) !== groupKey(t)
       const tag = groupBy === 'div' ? (t.conf + ' ' + t.div) : t.conf
-      const rankText = rk === 'sos' ? (e.sosR ? 'SOS ' + e.sosR : '—') : (grouped ? tag : String(i + 1))
+      const rankText = grouped ? tag : String(i + 1)
+      // In Schedule mode the box's top line is a bar: how hard this team's run-in is next to
+      // the rest of the league (full = hardest). The exact rank lives in the tooltip.
+      const sosM = rk === 'sos' ? this.sosOf(t.abbr, SOS) : null
       let z1: Dict[], z2: Dict[]
       if (orient === 'v') {
         const pendItems = e.pend.map((g: any) => ({ g, ty: 'pend' })); if (e.bye) pendItems.push({ g: e.bye, ty: 'bye' })
@@ -786,7 +809,9 @@ export class SeasonTower extends React.Component<Props, State> {
         abbrStyle = 'font-size:12px;font-weight:900;color:#1b1e24;width:30px;flex:0 0 auto;'
         recStyle = 'font-size:11px;color:#3a3f47;font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto;'
       }
-      return { abbr: t.abbr, rank: rankText, recordStr, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
+      return { abbr: t.abbr, rank: rankText, recordStr,
+        sosF: sosM ? sosM.f : null,
+        labelTitle: sosM ? `${t.name} · remaining schedule ${sosM.words} · ${sosM.sub}` : t.name, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
     })
 
     const decided = list.reduce((a, e) => a + e.played, 0) / 2
@@ -818,6 +843,7 @@ export class SeasonTower extends React.Component<Props, State> {
     let popWeek = '', popHa = '', popResBadge = '', popResStyle = '', popMetaShow = false
     let popTeamColor = '#8A8F98', popOppColor = '#8A8F98', popTeamTxt = '#fff', popOppTxt = '#fff'
     let popHasDetail = false; const popQ: Dict[] = []; let popRowT: Dict[] = []; let popRowO: Dict[] = []; let popStats: Dict[] = []; let popLineShow = false
+    let popStrA: Dict | null = null, popStrB: Dict | null = null
     let popTeamName = '', popOppName = '', popScoreA = '—', popScoreB = '—', popUW = '', popTW = '', popTeamDim = '', popOppDim = '', popAccentStyle = ''; let popChips: Dict[] = []
     if (pop) {
       const r = this.getRes(pop.abbr, pop.w)
@@ -830,6 +856,7 @@ export class SeasonTower extends React.Component<Props, State> {
       const op = (T[pop.opp] && T[pop.opp].primary) || '#8A8F98'
       popTeamColor = tp; popOppColor = op; popTeamTxt = this.contrast(tp); popOppTxt = this.contrast(op)
       popTeamName = (T[pop.abbr] && T[pop.abbr].name) || pop.abbr; popOppName = pop.oppFull || pop.opp
+      popStrA = this.fpiOf(pop.abbr); popStrB = this.fpiOf(pop.opp)
       popAccentStyle = `height:5px;background:linear-gradient(90deg,${tp} 0%,${tp} 46%,${op} 54%,${op} 100%);`
       if (r) {
         popScoreA = String(r.us); popScoreB = String(r.them)
@@ -872,7 +899,7 @@ export class SeasonTower extends React.Component<Props, State> {
       ...base, loading: false, orient, teamsSorted,
       popWeek, popHa, popResBadge, popResStyle, popMetaShow,
       popTeamColor, popOppColor, popTeamTxt, popOppTxt,
-      popTeamName, popOppName, popScoreA, popScoreB, popUW, popTW, popTeamDim, popOppDim, popAccentStyle, popChips,
+      popStrA, popStrB, popTeamName, popOppName, popScoreA, popScoreB, popUW, popTW, popTeamDim, popOppDim, popAccentStyle, popChips,
       popHasDetail, popQ, popRowT, popRowO, popStats, popLineShow, canEdit,
       showBaseline: false,
       baselineStyle: `position:absolute;left:16px;right:16px;top:${6 + abovePxFit}px;height:0;border-top:2px dashed #C4C8CE;z-index:1;pointer-events:none;`,
@@ -980,7 +1007,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     {v.showSos && <>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Rank by Schedule</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. <b>SOS 1</b> is the hardest run-in in the league, <b>SOS 32</b> the easiest.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows where its run-in sits — full for the hardest in the league, nearly empty for the easiest.</div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>
                         <span style={{ flex: '0 0 auto', marginTop: '2px', width: '30px', height: '17px', borderRadius: '3px', border: '1px solid #D9DCE1', background: 'linear-gradient(to right,#15181d 70%,transparent 70%) left bottom/100% 3px no-repeat,#fff', fontSize: '8px', fontWeight: 800, color: '#97233F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ARI</span>
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
@@ -1018,8 +1045,8 @@ export class SeasonTower extends React.Component<Props, State> {
                 <div style={css(t.z1Style)}>
                   {t.z1.map((c: any) => <Cell key={c.key} c={c} />)}
                 </div>
-                <div style={css(t.labelStyle)} onClick={t.onLabel}>
-                  <span style={css(t.rankStyle)}>{t.rank}</span>
+                <div style={css(t.labelStyle)} onClick={t.onLabel} title={t.labelTitle}>
+                  {t.sosF != null ? <Meter f={t.sosF} w="72%" h={4} /> : <span style={css(t.rankStyle)}>{t.rank}</span>}
                   <span style={css(t.abbrStyle)}>{t.abbr}</span>
                   <span style={css(t.recStyle)}>{t.recordStr}</span>
                 </div>
@@ -1047,6 +1074,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', textAlign: 'center', ...css(v.popTeamDim) }}>
                       <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: v.popTeamColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: v.popTeamTxt, fontSize: '11px', fontWeight: 900, letterSpacing: '.3px' }}>{v.popTeam}</span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#727781', lineHeight: 1.25, maxWidth: '110px' }}>{v.popTeamName}</span>
+                      {v.popStrA && <PopStrength s={v.popStrA} />}
                     </div>
                     <span style={{ fontSize: '46px', fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: '#15181d', ...css(v.popUW) }}>{v.popScoreA}</span>
                     <span style={{ fontSize: '20px', fontWeight: 400, color: '#D0D3D8' }}>–</span>
@@ -1054,6 +1082,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', textAlign: 'center', ...css(v.popOppDim) }}>
                       <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: v.popOppColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: v.popOppTxt, fontSize: '11px', fontWeight: 900, letterSpacing: '.3px' }}>{v.popOpp}</span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#727781', lineHeight: 1.25, maxWidth: '110px' }}>{v.popOppName}</span>
+                      {v.popStrB && <PopStrength s={v.popStrB} />}
                     </div>
                   </div>
                   <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', fontWeight: 700, color: '#15181d' }}>{v.popWeek} <span style={{ color: '#9298a1', fontWeight: 500 }}>{v.popHa}</span></div>
@@ -1150,8 +1179,8 @@ export class SeasonTower extends React.Component<Props, State> {
                 </div>
 
                 <div style={{ display: 'flex', flex: '0 0 auto', background: '#fff', borderBottom: '1px solid #EDEFF2', padding: '0 12px' }}>
-                  <button onClick={v.tmRoster} style={css(v.tm.tRoster)}>Roster</button>
                   <button onClick={v.tmSched} style={css(v.tm.tSched)}>Schedule</button>
+                  <button onClick={v.tmRoster} style={css(v.tm.tRoster)}>Roster</button>
                   <button onClick={v.tmInfo} style={css(v.tm.tInfo)}>Info</button>
                 </div>
 
@@ -1213,6 +1242,22 @@ export class SeasonTower extends React.Component<Props, State> {
 
                   {v.tm.tabSched && (
                     <div style={{ padding: '14px 22px 22px' }}>
+                      {v.tm.sos && (
+                        <div style={{ marginBottom: '16px', padding: '12px 14px', background: '#fff', border: '1px solid #EDEFF2', borderRadius: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Remaining schedule</span>
+                            <span style={{ fontSize: '13px', fontWeight: 900, color: '#15181d' }}>{v.tm.sos.words}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
+                            <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>easiest</span>
+                            <Meter f={v.tm.sos.f} w="grow" h={6} />
+                            <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>hardest</span>
+                          </div>
+                          <div style={{ marginTop: '7px', fontSize: '11px', fontWeight: 600, color: '#727781' }}>
+                            {v.tm.sos.sub.charAt(0).toUpperCase() + v.tm.sos.sub.slice(1)}{v.tm.own ? ` · ${v.tm.abbr} itself: ${v.tm.own.txt} (${v.tm.own.rankTxt} of 32)` : ''}
+                          </div>
+                        </div>
+                      )}
                       {v.tm.chart && (() => { const c = v.tm.chart; const A = v.tm.chartAccent; return (
                         <div style={{ marginBottom: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '2px' }}>
@@ -1256,7 +1301,8 @@ export class SeasonTower extends React.Component<Props, State> {
                         <div key={i} onClick={g.onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 0', borderTop: '1px solid #F3F4F6', cursor: 'pointer' }}>
                           <span style={{ flex: '0 0 42px', fontSize: '11px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{g.w}</span>
                           <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#15181d' }}><span style={{ color: '#B0B4BC', fontWeight: 600 }}>{g.ha}</span> {g.opp}</span>
-                          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#5c616b', fontVariantNumeric: 'tabular-nums' }}>{g.score}</span>
+                          {g.str && <span title={`${g.opp} ${g.str.txt} · ${g.str.rankTxt} of 32 by ESPN FPI`} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}><Meter f={g.str.f} w={40} />{g.str.txt}</span>}
+                          {!g.str && <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#5c616b', fontVariantNumeric: 'tabular-nums' }}>{g.score}</span>}
                           <span style={css(g.badgeStyle)}>{g.badge}</span>
                         </div>
                       ))}
@@ -1318,6 +1364,27 @@ export class SeasonTower extends React.Component<Props, State> {
 
 // A single game cell — opponent headline + score/week line, with the away `@` marker as a
 // smaller glyph and the winning score number emphasized.
+// The one strength meter used everywhere: ink on a pale track, the fill a 0..1 fraction.
+function Meter({ f, w = 44, h = 4 }: { f: number, w?: number | string, h?: number }) {
+  return (
+    <span style={{ display: 'inline-block', height: h + 'px', borderRadius: h / 2 + 'px', background: '#E4E7EB', overflow: 'hidden', verticalAlign: 'middle',
+      ...(w === 'grow' ? { flex: '1 1 auto', minWidth: 0 } : { flex: '0 0 auto', width: typeof w === 'number' ? w + 'px' : w }) }}>
+      <span style={{ display: 'block', height: '100%', width: Math.round(Math.max(0, Math.min(1, f)) * 100) + '%', background: '#15181d', borderRadius: h / 2 + 'px' }} />
+    </span>
+  )
+}
+
+// Under each team in the game pop-up: its ESPN rating, as the same meter the tower uses.
+function PopStrength({ s }: { s: any }) {
+  return (
+    <span title={`ESPN FPI ${s.txt.slice(4)} · ${s.rankTxt} of 32 — points it would beat an average team by`}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+      <Meter f={s.f} w={64} />
+      <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{s.txt} · {s.rankTxt}</span>
+    </span>
+  )
+}
+
 function Cell({ c }: { c: any }) {
   return (
     <div style={css(c.style)} onClick={c.onClick} title={c.title}>
