@@ -302,7 +302,10 @@ export class SeasonTower extends React.Component<Props, State> {
     if (!F || !F[ab]) return null
     const xs = Object.values(F).map((x: any) => x.fpi), lo = Math.min(...xs), hi = Math.max(...xs)
     const v = F[ab].fpi
-    return { v, rank: F[ab].rank, rankTxt: this.ordinal(F[ab].rank), f: Math.max(0.06, (v - lo) / ((hi - lo) || 1)), txt: `FPI ${v > 0 ? '+' : ''}${v.toFixed(1)}` }
+    const f0 = (v - lo) / ((hi - lo) || 1), color = this.toughColor(f0)
+    // colour = how tough this team is to face: strongest red, weakest green
+    return { v, rank: F[ab].rank, rankTxt: this.ordinal(F[ab].rank), f: Math.max(0.06, f0), f0, color,
+      track: this.mix(color, '#ffffff', 0.8), txt: `FPI ${v > 0 ? '+' : ''}${v.toFixed(1)}` }
   }
   // Where a team's remaining schedule sits in the league: fraction 0 (easiest) .. 1 (hardest),
   // plus the words for it. Scaled across the 32 teams' own SOS values, not the FPI range --
@@ -315,8 +318,8 @@ export class SeasonTower extends React.Component<Props, State> {
     const lo = Math.min(...vs), hi = Math.max(...vs)
     const hard = m.rank <= 16
     const words = hard ? `${this.ordinal(m.rank)} hardest of 32` : `${this.ordinal(33 - m.rank)} easiest of 32`
-    const f0 = (m.v - lo) / ((hi - lo) || 1)
-    return { ...m, f0, f: Math.max(0.06, f0), words,
+    const f0 = (m.v - lo) / ((hi - lo) || 1), color = this.toughColor(f0)
+    return { ...m, f0, f: Math.max(0.06, f0), color, track: this.mix(color, '#ffffff', 0.8), words,
       sub: `avg opponent FPI ${m.v > 0 ? '+' : ''}${m.v.toFixed(1)} over ${m.n} game${m.n === 1 ? '' : 's'}` }
   }
   // Green (easiest run-in) -> yellow -> red (hardest), continuous rather than three steps,
@@ -818,8 +821,7 @@ export class SeasonTower extends React.Component<Props, State> {
         recStyle = 'font-size:11px;color:#3a3f47;font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto;'
       }
       return { abbr: t.abbr, rank: rankText, recordStr,
-        sosF: sosM ? sosM.f : null, sosColor: sosM ? this.toughColor(sosM.f0) : null,
-        sosTrack: sosM ? this.mix(this.toughColor(sosM.f0), '#ffffff', 0.8) : null,
+        sosF: sosM ? sosM.f : null, sosColor: sosM ? sosM.color : null, sosTrack: sosM ? sosM.track : null,
         labelTitle: sosM ? `${t.name} · remaining schedule ${sosM.words} · ${sosM.sub}` : t.name, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
     })
 
@@ -1016,7 +1018,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
                     {v.showSos && <>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Rank by Schedule</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows how tough its run-in is — longer for a harder schedule, and coloured <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '8px' }}><b>SOS</b> is <b>strength of schedule</b>: how hard the games a team still has to play are. Each opponent is rated by ESPN’s <b>FPI</b> — how many points it would beat an average team by — and a team’s SOS is the average rating of the opponents left on its schedule. In Schedule mode the teams line up hardest to easiest, and the <b>bar on each team’s box</b> shows how tough its run-in is — longer for a harder schedule, and coloured <b style={{ color: '#D94436' }}>red</b> for the hardest, <b style={{ color: '#C9981A' }}>yellow</b> mid-table, <b style={{ color: '#2E9E5B' }}>green</b> for the easiest. The same colours rate a single team in the team and game cards: red is tough to face, green is not.</div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>
                         <span style={{ flex: '0 0 auto', marginTop: '2px', width: '30px', height: '17px', borderRadius: '3px', border: '1px solid #D9DCE1', background: 'linear-gradient(to right,#15181d 70%,transparent 70%) left bottom/100% 3px no-repeat,#fff', fontSize: '8px', fontWeight: 800, color: '#97233F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ARI</span>
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
@@ -1261,7 +1263,7 @@ export class SeasonTower extends React.Component<Props, State> {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
                             <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>easiest</span>
-                            <Meter f={v.tm.sos.f} w="grow" h={6} />
+                            <Meter f={v.tm.sos.f} w="grow" h={6} c={v.tm.sos.color} t={v.tm.sos.track} />
                             <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#B0B4BC' }}>hardest</span>
                           </div>
                           <div style={{ marginTop: '7px', fontSize: '11px', fontWeight: 600, color: '#727781' }}>
@@ -1312,7 +1314,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <div key={i} onClick={g.onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 0', borderTop: '1px solid #F3F4F6', cursor: 'pointer' }}>
                           <span style={{ flex: '0 0 42px', fontSize: '11px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{g.w}</span>
                           <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#15181d' }}><span style={{ color: '#B0B4BC', fontWeight: 600 }}>{g.ha}</span> {g.opp}</span>
-                          {g.str && <span title={`${g.opp} ${g.str.txt} · ${g.str.rankTxt} of 32 by ESPN FPI`} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}><Meter f={g.str.f} w={40} />{g.str.txt}</span>}
+                          {g.str && <span title={`${g.opp} ${g.str.txt} · ${g.str.rankTxt} of 32 by ESPN FPI`} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}><Meter f={g.str.f} w={40} c={g.str.color} t={g.str.track} />{g.str.txt}</span>}
                           {!g.str && <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#5c616b', fontVariantNumeric: 'tabular-nums' }}>{g.score}</span>}
                           <span style={css(g.badgeStyle)}>{g.badge}</span>
                         </div>
@@ -1390,7 +1392,7 @@ function PopStrength({ s }: { s: any }) {
   return (
     <span title={`ESPN FPI ${s.txt.slice(4)} · ${s.rankTxt} of 32 — points it would beat an average team by`}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-      <Meter f={s.f} w={64} />
+      <Meter f={s.f} w={64} c={s.color} t={s.track} />
       <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums' }}>{s.txt} · {s.rankTxt}</span>
     </span>
   )
