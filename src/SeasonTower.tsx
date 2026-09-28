@@ -819,6 +819,7 @@ export class SeasonTower extends React.Component<Props, State> {
       }
       return { abbr: t.abbr, rank: rankText, recordStr,
         sosF: sosM ? sosM.f : null, sosColor: sosM ? this.toughColor(sosM.f0) : null,
+        sosTrack: sosM ? this.mix(this.toughColor(sosM.f0), '#ffffff', 0.8) : null,
         labelTitle: sosM ? `${t.name} · remaining schedule ${sosM.words} · ${sosM.sub}` : t.name, onLabel: () => this.openTeam(t.abbr), colStyle, z1, z2, z1Style, z2Style, divStyle, labelStyle, rankStyle, abbrStyle, recStyle }
     })
 
@@ -1055,7 +1056,7 @@ export class SeasonTower extends React.Component<Props, State> {
                 </div>
                 <div style={css(t.labelStyle)} onClick={t.onLabel} title={t.labelTitle}>
                   {t.sosF != null
-                    ? <Meter f={t.sosF} w="72%" h={5} c={t.sosColor} />
+                    ? <Meter f={t.sosF} w="72%" h={5} c={t.sosColor} t={t.sosTrack} />
                     : <span style={css(t.rankStyle)}>{t.rank}</span>}
                   <span style={css(t.abbrStyle)}>{t.abbr}</span>
                   <span style={css(t.recStyle)}>{t.recordStr}</span>
@@ -1375,9 +1376,9 @@ export class SeasonTower extends React.Component<Props, State> {
 // A single game cell — opponent headline + score/week line, with the away `@` marker as a
 // smaller glyph and the winning score number emphasized.
 // The one strength meter used everywhere: ink on a pale track, the fill a 0..1 fraction.
-function Meter({ f, w = 44, h = 4, c = '#15181d' }: { f: number, w?: number | string, h?: number, c?: string }) {
+function Meter({ f, w = 44, h = 4, c = '#15181d', t = '#E4E7EB' }: { f: number, w?: number | string, h?: number, c?: string, t?: string }) {
   return (
-    <span style={{ display: 'inline-block', height: h + 'px', borderRadius: h / 2 + 'px', background: '#E4E7EB', overflow: 'hidden', verticalAlign: 'middle',
+    <span style={{ display: 'inline-block', height: h + 'px', borderRadius: h / 2 + 'px', background: t, overflow: 'hidden', verticalAlign: 'middle',
       ...(w === 'grow' ? { flex: '1 1 auto', minWidth: 0 } : { flex: '0 0 auto', width: typeof w === 'number' ? w + 'px' : w }) }}>
       <span style={{ display: 'block', height: '100%', width: Math.round(Math.max(0, Math.min(1, f)) * 100) + '%', background: c, borderRadius: h / 2 + 'px' }} />
     </span>
