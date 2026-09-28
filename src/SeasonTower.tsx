@@ -1098,6 +1098,11 @@ export class SeasonTower extends React.Component<Props, State> {
                       {v.popStrB && <PopStrength s={v.popStrB} />}
                     </div>
                   </div>
+                  {(v.popStrA || v.popStrB) && (
+                    <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '10px', fontWeight: 600, color: '#9298a1', lineHeight: 1.4 }}>
+                      ESPN FPI: points better than an average team · today’s rating
+                    </div>
+                  )}
                   <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', fontWeight: 700, color: '#15181d' }}>{v.popWeek} <span style={{ color: '#9298a1', fontWeight: 500 }}>{v.popHa}</span></div>
                   {v.popMetaShow && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '11px' }}>
