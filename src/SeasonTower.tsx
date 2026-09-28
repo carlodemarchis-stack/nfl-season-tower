@@ -72,12 +72,13 @@ interface State {
   cogOpen: boolean
   moreOpen: boolean
   groupBy?: 'league' | 'conf' | 'div'
-  rankBy?: 'pct' | 'wins'
+  rankBy?: 'pct' | 'wins' | 'sos'
+  FPI26?: Dict | null
 }
 
 const HASH_SEASONS = ['2024', '2025', '2026']
 const HASH_GROUPS = ['league', 'conf', 'div']
-const HASH_RANKS = ['pct', 'wins']
+const HASH_RANKS = ['pct', 'wins', 'sos']
 
 // #<season>/<group>/<rank>, e.g. #2025/div/wins. Each segment is validated against a known
 // list and anything unrecognised is ignored, so a bad link falls back to defaults rather than
@@ -123,8 +124,9 @@ export class SeasonTower extends React.Component<Props, State> {
       import('./data/rosters-2025.js').then(m => ({ R: m.ROSTERS2025 })).catch(() => ({ R: {} })),
       import('./data/schedule-2024.js').then(m => ({ T24: m.TEAMS2024, R24: m.RESULTS2024, MAX24: m.MAXWEEK2024 })).catch(() => ({ T24: null, R24: {}, MAX24: 18 })),
       import('./data/details-2024.js').then(m => ({ DET: m.DETAILS2024 })).catch(() => ({ DET: {} })),
-    ]).then(([a, a2, b, c, d, e, f]: any[]) => {
-      this.setState({ TEAMS26: a.T26, RES26: a2.R26, TEAMS25: b.T25, RES25: b.R25, MAX25: b.MAX25, DET25: c.DET, ROST: d.R, TEAMS24: e.T24, RES24: e.R24, MAX24: e.MAX24, DET24: f.DET }, () => {
+      import('./data/fpi-2026.js').then(m => ({ FPI: m.FPI2026 })).catch(() => ({ FPI: null })),
+    ]).then(([a, a2, b, c, d, e, f, g]: any[]) => {
+      this.setState({ FPI26: g.FPI, TEAMS26: a.T26, RES26: a2.R26, TEAMS25: b.T25, RES25: b.R25, MAX25: b.MAX25, DET25: c.DET, ROST: d.R, TEAMS24: e.T24, RES24: e.R24, MAX24: e.MAX24, DET24: f.DET }, () => {
         // default the week to the latest available for the active season
         this.buildThrough(this.defaultWeek())
       })
@@ -274,6 +276,26 @@ export class SeasonTower extends React.Component<Props, State> {
   }
   keyOf(a: string, w: number) { return a + ':' + w }
   getRes(a: string, w: number) { return this.state.results[this.keyOf(a, w)] || null }
+  // How hard the rest of each team's season is: the average ESPN FPI of every opponent it
+  // still has to play (whatever hangs from the ceiling at the current slider week).
+  // Opponent quality only, no home/away term -- that is what ESPN's own remaining-schedule
+  // rank measures, and adding venue made our order agree with it less, not more.
+  // 2026 only: it rates the future with today's ratings, which says nothing about a past season.
+  remainingSos(): Dict | null {
+    if (this.season() !== '2026') return null
+    const F = this.state.FPI26 && this.state.FPI26.teams, T = this.activeTeams()
+    if (!F || !T) return null
+    const out: Dict = {}
+    for (const ab in T) {
+      const left = T[ab].games.filter((g: any) => !this.getRes(ab, g.w) && F[g.opp])
+      out[ab] = { n: left.length, v: left.length ? left.reduce((s: number, g: any) => s + F[g.opp].fpi, 0) / left.length : null }
+    }
+    Object.keys(out).filter(k => out[k].v != null)
+      .sort((a, b) => (out[b].v - out[a].v) || (a < b ? -1 : 1))
+      .forEach((k, i) => { out[k].rank = i + 1 })
+    return out
+  }
+  ordinal(n: number) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]) }
   infer(us: number, them: number) { return us > them ? 'W' : us < them ? 'L' : 'T' }
   pn(v: any) { if (v === '' || v == null) return null; const n = parseInt(v, 10); return Number.isNaN(n) ? null : n }
   statNum(s: any) { if (s == null) return null; s = String(s); const t = s.match(/^(\d+):(\d+)$/); if (t) return (+t[1]) * 60 + (+t[2]); const m = s.match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null }
@@ -467,7 +489,17 @@ export class SeasonTower extends React.Component<Props, State> {
       tabRoster: this.state.teamTab === 'roster', tabSched: this.state.teamTab === 'schedule', tabInfo: this.state.teamTab === 'info',
       tRoster: this.teamTabStyle('roster'), tSched: this.teamTabStyle('schedule'), tInfo: this.teamTabStyle('info'),
       sched: this.buildTeamSchedule(abbr),
-      infoRows: [{ k: 'Head coach', v: (rost && rost.coach) || '—' }, { k: 'Division', v: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : 'West'}` }, { k: 'Record', v: rec.str }, { k: 'Roster size', v: String((rost && rost.count) || 0) }],
+      infoRows: [{ k: 'Head coach', v: (rost && rost.coach) || '—' }, { k: 'Division', v: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : 'West'}` }, { k: 'Record', v: rec.str },
+        ...(() => {
+          const sos = this.remainingSos(), m = sos && sos[abbr]
+          if (!m || m.v == null) return []
+          const tone = m.rank <= 8 ? 'hardest' : m.rank >= 25 ? 'easiest' : null
+          return [{ k: 'Remaining schedule', v: tone
+            ? `${this.ordinal(tone === 'hardest' ? m.rank : 33 - m.rank)} ${tone} of 32`
+            : `${this.ordinal(m.rank)} hardest of 32` },
+          { k: 'Avg opponent FPI', v: `${m.v > 0 ? '+' : ''}${m.v.toFixed(1)} over ${m.n} game${m.n === 1 ? '' : 's'}` }]
+        })(),
+        { k: 'Roster size', v: String((rost && rost.count) || 0) }],
     }
   }
   teamTabStyle(tab: string) {
@@ -504,7 +536,9 @@ export class SeasonTower extends React.Component<Props, State> {
     const S = this.state, T = this.activeTeams()
     const seasonYr = this.season()
     const groupBy = S.groupBy || 'league'
-    const rankBy = S.rankBy || 'pct'
+    const rankBy0 = S.rankBy || 'pct'
+    const sosAvail = this.season() === '2026' && !!S.FPI26
+    const rankBy = (rankBy0 === 'sos' && !sosAvail) ? 'wins' : rankBy0
     const colorMode = this.props.colorMode === 'opponent' ? 'opponent' : 'result'
     const lossReverse = this.props.lossReverse !== false
     const pendCeiling = this.props.pendingMode !== 'stack'
@@ -523,7 +557,10 @@ export class SeasonTower extends React.Component<Props, State> {
     const base: Dict = {
       loadingText: `Loading ${seasonYr} schedule…`,
       segLeagueStyle: seg(groupBy === 'league'), segConfStyle: seg(groupBy === 'conf'), segDivStyle: seg(groupBy === 'div'),
-      segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'),
+      segPctStyle: seg(rankBy === 'pct'), segWinsStyle: seg(rankBy === 'wins'), segSosStyle: seg(rankBy === 'sos'),
+      // Only a live season with ratings loaded has a "remaining" schedule to rate.
+      showSos: sosAvail,
+      rankSos: () => this.setState({ rankBy: 'sos' }, () => this.syncHash()),
       grpLeague: () => this.setState({ groupBy: 'league' }, () => this.syncHash()), grpConf: () => this.setState({ groupBy: 'conf' }, () => this.syncHash()), grpDiv: () => this.setState({ groupBy: 'div' }, () => this.syncHash()),
       rankPct: () => this.setState({ rankBy: 'pct' }, () => this.syncHash()), rankWins: () => this.setState({ rankBy: 'wins' }, () => this.syncHash()),
       onPlay: () => this.togglePlay(),
@@ -554,6 +591,12 @@ export class SeasonTower extends React.Component<Props, State> {
     }
     if (!T) { return { ...base, loading: true, teamsSorted: [], showBaseline: false, colsWrapStyle: '', playedStr: '', bands: [], bandH: 22, pop: null } }
 
+    const SOS = this.remainingSos()
+    // Schedule ranking needs ratings; in a season without them it falls back to wins.
+    const rk = (rankBy === 'sos' && !SOS) ? 'wins' : rankBy
+    const FT: Dict = (S.FPI26 && S.FPI26.teams) || {}
+    const fv = Object.values(FT).map((x: any) => x.fpi)
+    const fMin = fv.length ? Math.min(...fv) : -8, fMax = fv.length ? Math.max(...fv) : 8
     const list = Object.values(T).map((t: any) => {
       const wins: any[] = [], losses: any[] = [], ties: any[] = [], pend: any[] = []
       for (const g of t.games) {
@@ -572,11 +615,14 @@ export class SeasonTower extends React.Component<Props, State> {
           if (!nextIn) bye = { w: byeW, opp: 'BYE', oppFull: 'Bye week', ha: '' }
         }
       }
-      return { t, wins, losses, ties, pend, bye, W, L, Ti, played, pct }
+      const sos = SOS && SOS[t.abbr]
+      return { t, wins, losses, ties, pend, bye, W, L, Ti, played, pct, sosV: sos ? sos.v : null, sosR: sos ? sos.rank : null }
     })
     // Pure ranking order, with no grouping applied — also used to pick the league leader.
     const rankCmp = (x: any, y: any) => {
-      if (rankBy === 'wins') { if (y.W !== x.W) return y.W - x.W }
+      // hardest remaining schedule first; a team with nothing left to play goes last
+      if (rk === 'sos') { const a = x.sosV == null ? -99 : x.sosV, b = y.sosV == null ? -99 : y.sosV; if (a !== b) return b - a }
+      if (rk === 'wins') { if (y.W !== x.W) return y.W - x.W }
       if (y.pct !== x.pct) return y.pct - x.pct
       if (y.W !== x.W) return y.W - x.W
       if (x.L !== y.L) return x.L - y.L
@@ -640,12 +686,27 @@ export class SeasonTower extends React.Component<Props, State> {
       if (type === 'bye') { bg = '#F0F1F3'; color = '#9BA0A9'; border = '1px dashed #D0D3D8' }
       else if (colorMode === 'opponent') {
         const oppPrim = (T[g.opp] && T[g.opp].primary) || '#8A8F98'
-        if (type === 'pend') { bg = '#ffffff'; color = oppPrim; border = '1px solid ' + this.mix(oppPrim, '#ffffff', 0.55) }
+        if (type === 'pend') {
+          bg = '#ffffff'; color = oppPrim; border = '1px solid ' + this.mix(oppPrim, '#ffffff', 0.55)
+          // In Schedule mode each upcoming game carries a meter along its foot: the longer
+          // the bar, the stronger the opponent (weakest team in the league = empty, strongest
+          // = full). Ink, not red/green -- a red edge on a white cell already means a loss.
+          if (rk === 'sos' && FT[g.opp]) {
+            const f = Math.max(0.06, (FT[g.opp].fpi - fMin) / ((fMax - fMin) || 1))
+            bg = `linear-gradient(to right,#15181d ${(f * 100).toFixed(0)}%,transparent ${(f * 100).toFixed(0)}%) left bottom/100% 3px no-repeat,#ffffff`
+          }
+        }
         else if (type === 'tie') { bg = this.mix(oppPrim, '#ffffff', 0.18); border = '1px solid rgba(0,0,0,.1)'; color = this.contrast(bg) }
         else if (type === 'loss' && lossReverse) { bg = '#ffffff'; color = oppPrim; border = '1.5px solid #E5484D' }
         else { bg = oppPrim; border = '1px solid rgba(0,0,0,.14)'; color = this.contrast(oppPrim) }
       } else {
-        if (type === 'pend') { bg = '#EDEFF2'; color = '#9BA0A9'; border = '1px solid #E4E7EB' }
+        if (type === 'pend') {
+          bg = '#EDEFF2'; color = '#9BA0A9'; border = '1px solid #E4E7EB'
+          if (rk === 'sos' && FT[g.opp]) {
+            const f = Math.max(0.06, (FT[g.opp].fpi - fMin) / ((fMax - fMin) || 1))
+            bg = `linear-gradient(to right,#15181d ${(f * 100).toFixed(0)}%,transparent ${(f * 100).toFixed(0)}%) left bottom/100% 3px no-repeat,#EDEFF2`
+          }
+        }
         else if (type === 'win') { bg = prim; color = txt; border = '1px solid rgba(0,0,0,.06)' }
         else if (type === 'loss') { bg = '#FBEAE9'; color = '#C23A2E'; border = '1px solid #F3D3CF' }
         else { bg = '#F2E4BC'; color = '#7C6320'; border = '1px solid #E7D39A' }
@@ -666,7 +727,8 @@ export class SeasonTower extends React.Component<Props, State> {
         sAStyle = usWin ? 'font-weight:800;' : ''
         sBStyle = usWin ? '' : 'font-weight:800;'
       }
-      const resTxt = r ? (' · ' + r.res + ' ' + r.us + '-' + r.them) : ' · to play'
+      const oppF = !r && FT[g.opp] && SOS ? ` · ${g.opp} FPI ${FT[g.opp].fpi > 0 ? '+' : ''}${FT[g.opp].fpi.toFixed(1)} (${this.ordinal(FT[g.opp].rank)} of 32)` : ''
+      const resTxt = r ? (' · ' + r.res + ' ' + r.us + '-' + r.them) : (' · to play' + oppF)
       const title = type === 'bye' ? `Week ${g.w} · Bye week` : `Wk ${g.w} · ${g.ha === 'A' ? '@ ' : 'vs '}${g.oppFull}${resTxt}${g.net ? (' · ' + g.net) : ''}`
       return { key: t.abbr + '-' + g.w, l1, l2, atMark, sA, sMid, sB, sAStyle, sBStyle, style, title, onClick: type === 'bye' ? (() => {}) : (() => this.openPop(t.abbr, g.w)) }
     }
@@ -675,7 +737,7 @@ export class SeasonTower extends React.Component<Props, State> {
       const t = e.t, prim = t.primary, txt = this.contrast(prim)
       const isGroupStart = grouped && i > 0 && groupKey(list[i - 1].t) !== groupKey(t)
       const tag = groupBy === 'div' ? (t.conf + ' ' + t.div) : t.conf
-      const rankText = grouped ? tag : String(i + 1)
+      const rankText = rk === 'sos' ? (e.sosR ? 'SOS ' + e.sosR : '—') : (grouped ? tag : String(i + 1))
       let z1: Dict[], z2: Dict[]
       if (orient === 'v') {
         const pendItems = e.pend.map((g: any) => ({ g, ty: 'pend' })); if (e.bye) pendItems.push({ g: e.bye, ty: 'bye' })
@@ -882,6 +944,7 @@ export class SeasonTower extends React.Component<Props, State> {
               <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
                 <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
                 <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
+                {v.showSos && <button onClick={v.rankSos} style={css(v.segSosStyle)} title="Hardest remaining schedule first, by ESPN FPI of the opponents still to play">Schedule</button>}
               </div>
             </div>}
             {v.isNarrow && <div style={{ position: 'relative' }}>
@@ -900,6 +963,7 @@ export class SeasonTower extends React.Component<Props, State> {
                     <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
                       <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
                       <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
+                      {v.showSos && <button onClick={v.rankSos} style={css(v.segSosStyle)}>Schedule</button>}
                     </div>
                   </div>
                 </>
@@ -914,6 +978,7 @@ export class SeasonTower extends React.Component<Props, State> {
                   <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80, width: '272px', background: '#fff', border: '1px solid #E4E7EB', borderRadius: '12px', boxShadow: '0 14px 36px rgba(20,22,28,.17)', padding: '13px 15px', textAlign: 'left' }}>
                     <div style={{ fontSize: '13px', fontWeight: 900, color: '#15181d', marginBottom: '8px' }}>How to read the tower</div>
                     <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>Each box is a game, in the <b>opponent’s color</b>. Wins stack up from the baseline, losses hang below it; faded boxes at the top are games still to play. Teams re-sort live as results come in.</div>
+                    {v.showSos && <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}><b>Schedule</b> ranks teams by how hard their remaining games are: the average ESPN FPI rating of the opponents still to play. Each upcoming box gets a bar along its foot — the longer it is, the stronger that opponent.</div>}
                     <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
                     {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Game box score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
                       <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '3px 0', fontSize: '11.5px', color: '#4b5058' }}>

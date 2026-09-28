@@ -37,16 +37,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull finished games from ESPN
+      - name: Pull finished games and power ratings from ESPN
         id: pull
         run: |
           python3 tools/update_results.py
-          if git diff --quiet -- src/data/results-2026.js; then
+          # FPI drives the "Schedule" ranking. ESPN reruns it about once a week, so most
+          # runs change nothing here. A failed pull keeps the previous ratings rather than
+          # blocking a results update.
+          python3 tools/fetch_fpi.py || echo "FPI pull failed — keeping the previous ratings"
+          if git diff --quiet -- src/data/results-2026.js src/data/fpi-2026.js; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No new finals — nothing to commit."
+            echo "No new finals or ratings — nothing to commit."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- src/data/results-2026.js
+            git --no-pager diff --stat -- src/data/results-2026.js src/data/fpi-2026.js
           fi
 
       - name: Commit
@@ -54,7 +58,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/results-2026.js
+          git add src/data/results-2026.js src/data/fpi-2026.js
           git commit -m "Update 2026 results (automated)"
           git push
 
