@@ -16,6 +16,7 @@ on:
     - cron: '17 20-23 * * 0' # Sun: early and late windows finish
     - cron: '17 0-8 * * 1'   # Mon: late window + Sunday Night Football
     - cron: '17 3-8 * * 2'   # Tue: Monday Night Football
+    - cron: '17 6 * * 3'     # Wed: freeze the coming week's expectations (see freeze_picks.py)
     - cron: '17 12 * * *'    # daily safety net
   workflow_dispatch:
 
@@ -45,12 +46,16 @@ jobs:
           # runs change nothing here. A failed pull keeps the previous ratings rather than
           # blocking a results update.
           python3 tools/fetch_fpi.py || echo "FPI pull failed — keeping the previous ratings"
-          if git diff --quiet -- src/data/results-2026.js src/data/fpi-2026.js; then
+          # Freezes the coming week's expectations once, between Monday night and the first
+          # kickoff (it decides for itself whether the window is open). Never blocks results.
+          python3 tools/freeze_picks.py || echo "Freeze failed — will try again next run"
+          # status, not diff: it also sees a file that is new, which diff does not
+          if [ -z "$(git status --porcelain -- src/data)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No new finals or ratings — nothing to commit."
+            echo "No new finals, ratings or frozen picks — nothing to commit."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- src/data/results-2026.js src/data/fpi-2026.js
+            git status --short -- src/data
           fi
 
       - name: Commit
@@ -58,7 +63,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/results-2026.js src/data/fpi-2026.js
+          git add src/data
           git commit -m "Update 2026 results (automated)"
           git push
 
