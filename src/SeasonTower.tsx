@@ -319,7 +319,8 @@ export class SeasonTower extends React.Component<Props, State> {
       espn: espnFav ? { fav: espnFav, p: Math.round(Math.max(g.espnHome, g.espnAway)), ok: espnFav === winner } : null,
       line: g.line && g.line.fav ? { fav: g.line.fav, pts: g.line.pts, ok: g.line.fav === winner, miss: Math.abs(favBy(g.line.fav) - g.line.pts) } : null,
       fpi: g.fpi ? { fav: g.fpi.fav, pts: g.fpi.pts, ok: g.fpi.fav === winner, miss: Math.abs(favBy(g.fpi.fav) - g.fpi.pts) } : null,
-      winnerP: winnerP == null ? null : Math.round(winnerP), upset: winnerP != null && winnerP < 50,
+      // raw for ranking upsets (24.9 and 25.4 both round to 25), rounded for display
+      winnerRaw: winnerP, winnerP: winnerP == null ? null : Math.round(winnerP), upset: winnerP != null && winnerP < 50,
     }
   }
   weekScore(w: number): Dict | null {
@@ -328,11 +329,23 @@ export class SeasonTower extends React.Component<Props, State> {
     const done = wk.games.map((g: any) => ({ g, j: this.judgePick(g, w) })).filter((x: any) => x.j)
     const hit = (k: string) => done.filter((x: any) => x.j[k] && x.j[k].ok).length
     const of = (k: string) => done.filter((x: any) => x.j[k]).length
-    const up = done.filter((x: any) => x.j.upset).sort((a: any, b: any) => a.j.winnerP - b.j.winnerP)[0]
+    const up = done.filter((x: any) => x.j.upset).sort((a: any, b: any) => a.j.winnerRaw - b.j.winnerRaw)[0]
     const loser = up && (up.j.winner === up.g.home ? up.g.away : up.g.home)
-    return { w, n: done.length, total: wk.games.length, when: this.fmtDay(wk.frozenAt),
+    return { w, n: done.length, total: wk.games.length, when: this.fmtDay(wk.frozenAt), kickoff: wk.kind === 'kickoff',
       espn: hit('espn'), espnOf: of('espn'), line: hit('line'), lineOf: of('line'), fpi: hit('fpi'), fpiOf: of('fpi'),
       upset: up ? `${up.j.winner} over ${loser} (${up.j.winnerP}% chance)` : null }
+  }
+  // Every judged week added up -- one week is 16 games and mostly luck; this is the number
+  // that starts to mean something.
+  seasonScore(): Dict | null {
+    const P = this.season() === '2026' && this.state.PICKS26
+    if (!P) return null
+    const t: Dict = { n: 0, espn: 0, espnOf: 0, line: 0, lineOf: 0, fpi: 0, fpiOf: 0, weeks: 0 }
+    for (const w of Object.keys(P)) {
+      const x = this.weekScore(+w); if (!x || !x.n) continue
+      t.weeks++; for (const k of ['n', 'espn', 'espnOf', 'line', 'lineOf', 'fpi', 'fpiOf']) t[k] += x[k]
+    }
+    return t.n ? t : null
   }
   fmtDay(iso: string) {
     const d = new Date(iso); if (isNaN(+d)) return ''
@@ -888,6 +901,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const PK: Dict = S.PICKS26 || {}
     const scoreWeek = seasonYr !== '2026' ? null : PK[String(tw)] ? tw : PK[String(tw + 1)] ? tw + 1 : null
     const weekCard = scoreWeek ? this.weekScore(scoreWeek) : null
+    const seasonCard = weekCard ? this.seasonScore() : null
     const decided = list.reduce((a, e) => a + e.played, 0) / 2
     const playedStr = `${decided} / 272 games`
     // One band per visible group, sized to exactly span its columns (incl. the 2px column
@@ -939,7 +953,8 @@ export class SeasonTower extends React.Component<Props, State> {
       const pk = this.pickFor(pop.abbr, pop.w)
       if (pk) {
         const e = pk.espnHome == null ? null : (pk.espnHome >= pk.espnAway ? [pk.home, pk.espnHome] : [pk.away, pk.espnAway])
-        popPick = { when: this.fmtDay((S.PICKS26 || {})[String(pop.w)].frozenAt),
+        const wkP = (S.PICKS26 || {})[String(pop.w)]
+        popPick = { when: this.fmtDay(wkP.frozenAt), kickoff: wkP.kind === 'kickoff',
           espn: e ? `${e[0]} ${Math.round(e[1] as number)}%` : '—',
           line: pk.line ? (pk.line.fav ? `${pk.line.fav} −${pk.line.pts}` : 'pick’em') : '—',
           fpi: pk.fpi ? `${pk.fpi.fav} by ${pk.fpi.pts}` : '—' }
@@ -993,7 +1008,7 @@ export class SeasonTower extends React.Component<Props, State> {
     }
 
     return {
-      ...base, loading: false, orient, teamsSorted, weekCard,
+      ...base, loading: false, orient, teamsSorted, weekCard, seasonCard,
       popWeek, popHa, popResBadge, popResStyle, popMetaShow,
       popTeamColor, popOppColor, popTeamTxt, popOppTxt,
       popStrA, popStrB, popOdds, popPick, popJudge, popTeamName, popOppName, popScoreA, popScoreB, popUW, popTW, popTeamDim, popOppDim, popAccentStyle, popChips,
@@ -1134,8 +1149,13 @@ export class SeasonTower extends React.Component<Props, State> {
               ? <span>Expectations frozen {v.weekCard.when}, before kickoff — results fill in as games finish</span>
               : <>
                   <span><b style={{ color: '#15181d' }}>{v.weekCard.n}</b> of {v.weekCard.total} played</span>
-                  <span>Favourite won: ESPN <b style={{ color: '#15181d' }}>{v.weekCard.espn}/{v.weekCard.espnOf}</b> · market line <b style={{ color: '#15181d' }}>{v.weekCard.line}/{v.weekCard.lineOf}</b> · our FPI <b style={{ color: '#15181d' }}>{v.weekCard.fpi}/{v.weekCard.fpiOf}</b></span>
+                  <span>Favourite won: {[
+                    v.weekCard.espnOf ? ['ESPN' + (v.weekCard.kickoff ? ' at kickoff' : ''), v.weekCard.espn, v.weekCard.espnOf] : null,
+                    v.weekCard.lineOf ? [v.weekCard.kickoff ? 'closing line' : 'market line', v.weekCard.line, v.weekCard.lineOf] : null,
+                    v.weekCard.fpiOf ? ['our FPI', v.weekCard.fpi, v.weekCard.fpiOf] : null,
+                  ].filter(Boolean).map((x: any, i: number) => <span key={i}>{i ? ' · ' : ''}{x[0]} <b style={{ color: '#15181d' }}>{x[1]}/{x[2]}</b></span>)}</span>
                   {v.weekCard.upset && <span>Biggest upset: <b style={{ color: '#C23A2E' }}>{v.weekCard.upset}</b></span>}
+                  {v.seasonCard && v.seasonCard.weeks > 1 && <span style={{ marginLeft: 'auto' }}>Season, {v.seasonCard.weeks} weeks: ESPN <b style={{ color: '#15181d' }}>{v.seasonCard.espn}/{v.seasonCard.espnOf}</b> · line <b style={{ color: '#15181d' }}>{v.seasonCard.line}/{v.seasonCard.lineOf}</b>{v.seasonCard.fpiOf ? <> · our FPI <b style={{ color: '#15181d' }}>{v.seasonCard.fpi}/{v.seasonCard.fpiOf}</b></> : null}</span>}
                 </>}
           </div>
         )}
@@ -1230,8 +1250,8 @@ export class SeasonTower extends React.Component<Props, State> {
                   )}
                   {v.popJudge && (
                     <div style={{ marginTop: '16px', border: '1px solid #EDEFF2', borderRadius: '12px', padding: '10px 14px' }}>
-                      <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Before kickoff · frozen {v.popPick.when}</div>
-                      {([['ESPN predictor', v.popPick.espn, v.popJudge.espn, null], ['Market line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], ['Our FPI', v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).map(([k, val, j, miss]) => (
+                      <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Before kickoff · {v.popPick.kickoff ? 'ESPN at kickoff, closing line' : 'frozen ' + v.popPick.when}</div>
+                      {([[v.popPick.kickoff ? 'ESPN at kickoff' : 'ESPN predictor', v.popPick.espn, v.popJudge.espn, null], [v.popPick.kickoff ? 'Closing line' : 'Market line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], ['Our FPI', v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).filter((x: any) => x[2] || x[1] !== '—').map(([k, val, j, miss]) => (
                         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', fontSize: '12px' }}>
                           <span style={{ flex: '0 0 104px', color: '#9298a1', fontWeight: 600 }}>{k}</span>
                           <span style={{ flex: 1, fontWeight: 800, color: '#15181d', fontVariantNumeric: 'tabular-nums' }}>{val}</span>
