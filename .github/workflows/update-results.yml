@@ -49,6 +49,9 @@ jobs:
           # Freezes the coming week's expectations once, between Monday night and the first
           # kickoff (it decides for itself whether the window is open). Never blocks results.
           python3 tools/freeze_picks.py || echo "Freeze failed — will try again next run"
+          # Once a frozen game is final, add ESPN's kickoff chance and the closing line —
+          # what every week is judged by. Skips games already settled.
+          python3 tools/kickoff_lines.py settle || echo "Settle failed — will try again next run"
           # status, not diff: it also sees a file that is new, which diff does not
           if [ -z "$(git status --porcelain -- src/data)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"

@@ -309,6 +309,14 @@ export class SeasonTower extends React.Component<Props, State> {
   // it off. An upset is a winner ESPN gave less than an even chance.
   judgePick(g: Dict, w: number): Dict | null {
     const r = this.getRes(g.home, w); if (!r) return null
+    // Every week is judged by the same two ESPN numbers, both fixed before kickoff and kept
+    // on the finished game: its win chance at kickoff and the closing line. Weeks 1-3 hold
+    // them directly (kind "kickoff"); frozen weeks gain them as ko/close once settled.
+    // Our FPI favourite is judged from its Wednesday freeze.
+    const kick = (this.state.PICKS26 || {})[String(w)]?.kind === 'kickoff'
+    const ko = g.ko || (kick && g.espnHome != null ? { home: g.espnHome, away: g.espnAway } : null)
+    const cl = g.close || (kick ? g.line : null)
+    g = { ...g, espnHome: ko ? ko.home : null, espnAway: ko ? ko.away : null, line: cl }
     const m = r.us - r.them                       // from the home side
     const winner = m > 0 ? g.home : m < 0 ? g.away : null
     const favBy = (fav: string) => fav === g.home ? m : -m
@@ -959,6 +967,10 @@ export class SeasonTower extends React.Component<Props, State> {
           line: pk.line ? (pk.line.fav ? `${pk.line.fav} −${pk.line.pts}` : 'pick’em') : '—',
           fpi: pk.fpi ? `${pk.fpi.fav} by ${pk.fpi.pts}` : '—' }
         popJudge = r ? this.judgePick(pk, pop.w) : null
+        if (popJudge) {   // show the values actually judged: kickoff chance, closing line
+          popPick.espn = popJudge.espn ? `${popJudge.espn.fav} ${popJudge.espn.p}%` : '—'
+          popPick.line = popJudge.line ? `${popJudge.line.fav} −${popJudge.line.pts}` : '—'
+        }
       }
       // Who is favoured, from the rating gap: FPI is points vs an average team, so the gap is
       // a neutral-field margin; 13.5 points is the usual spread of NFL results around it.
@@ -1125,7 +1137,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
                       </div>
                       <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>The rule everywhere: a <b>coloured bar</b> is how hard something is <b>for the team you’re looking at</b>. A team’s <b>own strength</b> is drawn differently — a grey bar growing either side of a centre line, the average team. Game cards also show <b>who’s favoured</b>, from the gap between the two ratings, on a neutral field.</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}><b>Expected vs result.</b> Each week’s expectations are frozen before its first kickoff and never changed: ESPN’s matchup predictor, the market line, and our FPI favourite. Once a game is played its card shows how each one did, and the strip above the tower keeps the week’s score.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}><b>Expected vs result.</b> Every game is judged against what was expected before kickoff: ESPN’s win chance at kickoff, the closing betting line, and — from week 4 — our own FPI favourite, frozen each Wednesday because ratings aren’t kept. A played game’s card shows how each did; the strip above the tower keeps the week’s score and the season’s.</div>
                     </>}
                     <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
                     {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Game box score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
@@ -1150,8 +1162,8 @@ export class SeasonTower extends React.Component<Props, State> {
               : <>
                   <span><b style={{ color: '#15181d' }}>{v.weekCard.n}</b> of {v.weekCard.total} played</span>
                   <span>Favourite won: {[
-                    v.weekCard.espnOf ? ['ESPN' + (v.weekCard.kickoff ? ' at kickoff' : ''), v.weekCard.espn, v.weekCard.espnOf] : null,
-                    v.weekCard.lineOf ? [v.weekCard.kickoff ? 'closing line' : 'market line', v.weekCard.line, v.weekCard.lineOf] : null,
+                    v.weekCard.espnOf ? ['ESPN at kickoff', v.weekCard.espn, v.weekCard.espnOf] : null,
+                    v.weekCard.lineOf ? ['closing line', v.weekCard.line, v.weekCard.lineOf] : null,
                     v.weekCard.fpiOf ? ['our FPI', v.weekCard.fpi, v.weekCard.fpiOf] : null,
                   ].filter(Boolean).map((x: any, i: number) => <span key={i}>{i ? ' · ' : ''}{x[0]} <b style={{ color: '#15181d' }}>{x[1]}/{x[2]}</b></span>)}</span>
                   {v.weekCard.upset && <span>Biggest upset: <b style={{ color: '#C23A2E' }}>{v.weekCard.upset}</b></span>}
@@ -1250,8 +1262,8 @@ export class SeasonTower extends React.Component<Props, State> {
                   )}
                   {v.popJudge && (
                     <div style={{ marginTop: '16px', border: '1px solid #EDEFF2', borderRadius: '12px', padding: '10px 14px' }}>
-                      <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Before kickoff · {v.popPick.kickoff ? 'ESPN at kickoff, closing line' : 'frozen ' + v.popPick.when}</div>
-                      {([[v.popPick.kickoff ? 'ESPN at kickoff' : 'ESPN predictor', v.popPick.espn, v.popJudge.espn, null], [v.popPick.kickoff ? 'Closing line' : 'Market line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], ['Our FPI', v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).filter((x: any) => x[2] || x[1] !== '—').map(([k, val, j, miss]) => (
+                      <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Expected before kickoff</div>
+                      {([['ESPN at kickoff', v.popPick.espn, v.popJudge.espn, null], ['Closing line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], [v.popPick.kickoff ? 'Our FPI' : `Our FPI · ${v.popPick.when}`, v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).filter((x: any) => x[2] || x[1] !== '—').map(([k, val, j, miss]) => (
                         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', fontSize: '12px' }}>
                           <span style={{ flex: '0 0 104px', color: '#9298a1', fontWeight: 600 }}>{k}</span>
                           <span style={{ flex: 1, fontWeight: 800, color: '#15181d', fontVariantNumeric: 'tabular-nums' }}>{val}</span>
