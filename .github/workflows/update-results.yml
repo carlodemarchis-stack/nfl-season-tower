@@ -42,6 +42,13 @@ jobs:
         id: pull
         run: |
           python3 tools/update_results.py
+          # New finals -> refresh the film's player leaders (with game logs) and rosters, so
+          # its cards move with the results. Only then: rosters change daily, and refreshing
+          # them on every run would commit and redeploy for nothing.
+          if [ -n "$(git status --porcelain -- src/data/results-2026.js)" ]; then
+            python3 tools/fetch_players.py 2026 || echo "Player pull failed — keeping the previous leaders"
+            python3 tools/fetch_rosters.py 2026 || echo "Roster pull failed — keeping the previous rosters"
+          fi
           # FPI drives the "Schedule" ranking. ESPN reruns it about once a week, so most
           # runs change nothing here. A failed pull keeps the previous ratings rather than
           # blocking a results update.

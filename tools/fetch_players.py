@@ -24,6 +24,9 @@ DATA = os.path.join(HERE, "..", "src", "data")
 API = ("https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/"
        "byathlete?region=us&lang=en&contentorigin=espn")
 GAMELOG = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/%s/gamelog?season=%s"
+# ESPN abbreviation -> the schedule's key, or Washington's cards lose their club
+ALIAS = {"WSH": "WAS", "LA": "LAR", "JAC": "JAX"}
+norm = lambda a: ALIAS.get(a, a)
 
 # group key, label, ranking stat(s), positions kept, how many cards.
 # Linebackers and the secondary are ranked separately on purpose: sorting the whole
@@ -103,7 +106,7 @@ def gamelog(pid, season):
         for cat in st.get("categories") or []:
             for e in cat.get("events") or []:
                 meta = ev.get(e.get("eventId")) or {}
-                opp = (meta.get("opponent") or {}).get("abbreviation")
+                opp = norm((meta.get("opponent") or {}).get("abbreviation"))
                 if not opp:
                     continue
                 g = {"w": meta.get("week"), "o": opp,
@@ -162,7 +165,7 @@ def main(season):
                     continue
                 players[pid] = {
                     "id": pid, "n": a.get("displayName"), "pos": pos,
-                    "team": r.get("teamShortName") or a.get("teamShortName"),
+                    "team": norm(r.get("teamShortName") or a.get("teamShortName")),
                     "age": a.get("age"), "st": st,
                 }
                 kept.append(pid)
@@ -173,6 +176,11 @@ def main(season):
                        "sort": boards[0][0], "ids": kept})
         print(f"  {label:15} {len(kept):>3} cards   (leader {players[kept[0]]['n']})"
               if kept else f"  {label:15}   0 cards")
+
+    # Fail loudly rather than ship a deck with an empty section (the workflow re-runs this)
+    if any(not g["ids"] for g in groups):
+        print("a leaderboard came back empty — not writing", file=sys.stderr)
+        sys.exit(1)
 
     sigs = attach_logs(players, season)
     out = {"season": season, "groups": groups, "sigs": sigs, "players": players}

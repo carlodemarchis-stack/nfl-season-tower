@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NFL · 2025 Season Film</title>
+<title>NFL · 2026 Season Film</title>
 <meta name="description" content="One card per NFL team in ranking order — every game as a tower, full roster and season splits. Produced with passion by A guy with a scarf (Carlo De Marchis)." />
 <link rel="canonical" href="https://nfl.aguywithascarf.com/film.html" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="A guy with a scarf" />
-<meta property="og:title" content="NFL — 2025 Season Film" />
+<meta property="og:title" content="NFL — 2026 Season Film" />
 <meta property="og:description" content="An interactive NFL card film: 172 players by position group and all 32 clubs, every game as a tower, full rosters and season splits. Best in landscape on laptops & iPads — also great on your phone." />
 <meta property="og:url" content="https://nfl.aguywithascarf.com/film.html" />
 <meta property="og:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
@@ -16,7 +16,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="NFL Season Film — one card per team" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="NFL — 2025 Season Film" />
+<meta name="twitter:title" content="NFL — 2026 Season Film" />
 <meta name="twitter:description" content="An interactive NFL card film: 172 players by position group and all 32 clubs, every game as a tower." />
 <meta name="twitter:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
 <!-- Umami --><script>try{/[?&#]noumami\b/.test(location.href)&&localStorage.setItem('umami.disabled','1')}catch(e){}</script><script defer src="https://m.aguywithascarf.com/k.js" data-website-id="35fa818c-5cc5-4c16-b5d7-d7cc554f06ed"></script><!-- End Umami -->
@@ -364,9 +364,10 @@
     <button class="mclose" onclick="closeModal('cmodal')">&times;</button><div id="cbody"></div></div></div>
 
 <script type="module">
-import { TEAMS2025 as TEAMS, RESULTS2025 as RESULTS } from './src/data/schedule-2025.js'
-import { ROSTERS2025 as ROSTERS } from './src/data/rosters-2025.js'
-import { PLAYERS2025 as PLAYERS } from './src/data/players-2025.js'
+import { TEAMS } from './src/data/schedule-2026.js'
+import { RESULTS2026 as RESULTS } from './src/data/results-2026.js'
+import { ROSTERS2026 as ROSTERS } from './src/data/rosters-2026.js'
+import { PLAYERS2026 as PLAYERS } from './src/data/players-2026.js'
 
 const TEAL='#13b3a6', RED='#ef4b52', AMBER='#d9a13a'
 
@@ -387,7 +388,10 @@ const posRank=p=>{const i=POS_ORDER.indexOf(p);return i<0?99:i}
 const UNITS=[['offense','Offense'],['defense','Defense'],['specialTeam','Special Teams'],['injuredReserveOrOut','Reserve / Out']]
 
 const MAXW=18
-let curWeek=MAXW
+// The season is live: the latest week with a final score is "now", and the film
+// opens there. Everything after it is still to play.
+const LASTW=Math.max(1,...Object.keys(RESULTS).map(k=>+k.split(':')[1]))
+let curWeek=LASTW
 // "Through week X" model, exactly like the Season Tower: weeks after X are still to play
 // (rendered as upcoming tower cells) and do not count toward standings. No simulation.
 const resOf=(abbr,w)=> (w<=curWeek ? (RESULTS[abbr+':'+w]||null) : null)
@@ -413,7 +417,7 @@ function computeStats(week){
     stat[abbr]=st
   }
 }
-// Deck order + playoff seeds are FROZEN from the full season — changing the week only updates
+// Deck order + playoff seeds are FROZEN at the latest played week — changing the week only updates
 // each card's values in place, so the cards never reshuffle.
 function freezeRanking(){
   ranked=Object.keys(TEAMS).sort((a,b)=>{
@@ -421,6 +425,7 @@ function freezeRanking(){
     if(B.pct!==A.pct) return B.pct-A.pct
     if(B.W!==A.W) return B.W-A.W
     if(A.L!==B.L) return A.L-B.L
+    if(B.diff!==A.diff) return B.diff-A.diff   // early in a season many records tie
     return a<b?-1:1
   })
   seed={}
@@ -546,7 +551,7 @@ function buildDeck(){
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png" alt="${abbr}" onerror="this.onerror=null;this.parentNode.textContent='${abbr}'"></div>
       <div class="tb-id"><div class="tb-name">${t.name} ${zone}</div>
-        <div class="tb-sub">NFL · 2025 · ${curWeek>=MAXW?'Season Film':'Through Wk '+curWeek} · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
+        <div class="tb-sub">NFL · 2026 · ${curWeek>=MAXW?'Season Film':'Through Wk '+curWeek} · ${(ROSTERS[abbr]&&ROSTERS[abbr].coach)||'—'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
         <span class="tb-rankbig"><small>#</small><b>${idx+1}</b></span>
@@ -625,7 +630,7 @@ function playerChart(p,I,soft){
   const slots=[]
   for(let w=1;w<=18;w++){
     if(byWk[w]) slots.push(['g',byWk[w],w])
-    else slots.push([weeks.has(w)?'out':'bye',null,w])
+    else slots.push([!weeks.has(w)?'bye':w>LASTW?'next':'out',null,w])
   }
   if(post.length){ slots.push(['div',null,null]); post.forEach(g=>slots.push(['g',g,g.w])) }
   let max=1; log.forEach(g=>{ const v=gameVal(p,g,key)||0; if(v>max) max=v })
@@ -633,7 +638,7 @@ function playerChart(p,I,soft){
   const cols=slots.map(([ty,g,w])=>{
     if(ty==='div') return `<div class="pc-div"><span>Playoffs</span></div>`
     if(!g) return `<div class="pc-col"><div class="pc-h"></div>`
-      +`<div class="pc-res none" title="Week ${w} · ${ty==='bye'?'Bye week':'Did not play'}">${ty==='bye'?'·':'–'}</div>`
+      +`<div class="pc-res none" title="Week ${w} · ${ty==='bye'?'Bye week':ty==='next'?'Still to play':'Did not play'}">${ty==='bye'?'·':ty==='next'?'':'–'}</div>`
       +`<div class="pc-wk out">${w}</div></div>`
     const v=gameVal(p,g,key)||0
     const o=TEAMS[g.o]||{}, op=o.primary||'#8A8F98'
@@ -672,7 +677,7 @@ function playerCard(p, gLabel, rank){
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="${p.team}" onerror="this.onerror=null;this.parentNode.textContent='${p.team}'"></div>
       <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${p.pos} · ${p.team}</span></div>
-        <div class="tb-sub">NFL · 2025 · ${gLabel} · #${rank} by ${gLabel.toLowerCase()==='specialists'?'their board':'the group stat'}</div></div>
+        <div class="tb-sub">NFL · 2026 · ${gLabel} · #${rank} by ${gLabel.toLowerCase()==='specialists'?'their board':'the group stat'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
         <span class="tb-rankbig"><small>#</small><b>${rank}</b></span>
@@ -898,14 +903,14 @@ addEventListener('hashchange',()=>{ const i=idxFromHash(); if(i!==idx){ setPlay(
 
 /* ---- match-week selector (later weeks simulated) ---- */
 const wk=$('wk')
-for(let w=MAXW; w>=1; w--){ const o=document.createElement('option'); o.value=w; o.textContent=w>=MAXW?'Full':('Wk '+w); wk.appendChild(o) }
-wk.value=MAXW
+for(let w=LASTW; w>=1; w--){ const o=document.createElement('option'); o.value=w; o.textContent=w>=MAXW?'Full':('Wk '+w); wk.appendChild(o) }
+wk.value=LASTW
 function rebuild(week){
   computeStats(week); buildDeck(); buildTabs(); render()   // frozen order — stay on the current card
 }
 wk.onchange=()=>{ setPlay(false); rebuild(+wk.value) }
 
-computeStats(MAXW); freezeRanking()    // ranking + seeds frozen from the full season
+computeStats(LASTW); freezeRanking()   // ranking + seeds frozen at the latest week
 buildDeck(); buildTabs()
 idx=idxFromHash()
 render()
