@@ -70,6 +70,7 @@ interface State {
   seasonSel: string | null
   seasonOpen: boolean
   helpOpen: boolean
+  pickHelpOpen: boolean
   cogOpen: boolean
   moreOpen: boolean
   groupBy?: 'league' | 'conf' | 'div'
@@ -112,7 +113,7 @@ export class SeasonTower extends React.Component<Props, State> {
     TEAMS26: null, RES26: null, TEAMS25: null, RES25: null, MAX25: 18, TEAMS24: null, RES24: null, MAX24: 18,
     DET24: null, results: {}, cw: 1280, ch: 600, pop: null, throughWeek: null,
     userSort: null, playing: false, ROST: null, teamPop: null, teamTab: 'schedule', rUnit: 'all',
-    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, cogOpen: false, moreOpen: false,
+    rQuery: '', rPos: 'all', rPosOpen: false, seasonSel: null, seasonOpen: false, helpOpen: false, pickHelpOpen: false, cogOpen: false, moreOpen: false,
     groupBy: 'div', rankBy: 'wins',
     ...readHash(),
   }
@@ -209,7 +210,7 @@ export class SeasonTower extends React.Component<Props, State> {
     this.buildThrough(cur + delta) // buildThrough clamps to [0, maxWeek]
   }
   onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { if (this.state.helpOpen || this.state.cogOpen || this.state.moreOpen) this.setState({ helpOpen: false, cogOpen: false, moreOpen: false }); return }
+    if (e.key === 'Escape') { if (this.state.helpOpen || this.state.pickHelpOpen || this.state.cogOpen || this.state.moreOpen) this.setState({ helpOpen: false, pickHelpOpen: false, cogOpen: false, moreOpen: false }); return }
     // Don't hijack keys while typing in a field or while a modal is open.
     const t = e.target as HTMLElement | null
     const tag = t && t.tagName
@@ -683,6 +684,9 @@ export class SeasonTower extends React.Component<Props, State> {
       moreOpen: S.moreOpen,
       onOpenMore: () => this.setState({ moreOpen: true, cogOpen: false, helpOpen: false }),
       onCloseMore: () => this.setState({ moreOpen: false }),
+      pickHelpOpen: S.pickHelpOpen,
+      onPickHelp: () => this.setState({ pickHelpOpen: true, cogOpen: false, helpOpen: false }),
+      onClosePickHelp: () => this.setState({ pickHelpOpen: false }),
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
@@ -822,6 +826,11 @@ export class SeasonTower extends React.Component<Props, State> {
         else if (type === 'loss') { bg = '#FBEAE9'; color = '#C23A2E'; border = '1px solid #F3D3CF' }
         else { bg = '#F2E4BC'; color = '#7C6320'; border = '1px solid #E7D39A' }
       }
+      // An upset -- a winner ESPN gave under an even chance at kickoff -- gets a red corner on
+      // the winner's box, so the strip's "biggest upset" has games you can see.
+      const pj = type === 'win' && r ? this.judgePick(this.pickFor(t.abbr, g.w) || {}, g.w) : null
+      const upset = pj && pj.upset ? pj : null
+      if (upset) bg = `linear-gradient(225deg,#E5484D 0 6px,#ffffff 6px 7.5px,transparent 7.5px),${bg}`
       let style: string
       if (orient === 'v') {
         let h = cellH; if (type === 'tie' && tieHalf) h = Math.max(9, cellH * 0.55)
@@ -840,7 +849,8 @@ export class SeasonTower extends React.Component<Props, State> {
       }
       const oppF = !r && FT[g.opp] && SOS ? ` · ${g.opp} FPI ${FT[g.opp].fpi > 0 ? '+' : ''}${FT[g.opp].fpi.toFixed(1)} (${this.ordinal(FT[g.opp].rank)} of 32)` : ''
       const resTxt = r ? (' · ' + r.res + ' ' + r.us + '-' + r.them) : (' · to play' + oppF)
-      const title = type === 'bye' ? `Week ${g.w} · Bye week` : `Wk ${g.w} · ${g.ha === 'A' ? '@ ' : 'vs '}${g.oppFull}${resTxt}${g.net ? (' · ' + g.net) : ''}`
+      const upTxt = upset ? ` · UPSET: ESPN gave ${t.abbr} ${upset.winnerP}% at kickoff` : ''
+      const title = type === 'bye' ? `Week ${g.w} · Bye week` : `Wk ${g.w} · ${g.ha === 'A' ? '@ ' : 'vs '}${g.oppFull}${resTxt}${upTxt}${g.net ? (' · ' + g.net) : ''}`
       return { key: t.abbr + '-' + g.w, l1, l2, atMark, sA, sMid, sB, sAStyle, sBStyle, style, title, onClick: type === 'bye' ? (() => {}) : (() => this.openPop(t.abbr, g.w)) }
     }
 
@@ -1138,7 +1148,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <span>The bar under an upcoming game is <b>that opponent’s own strength</b> — nearly empty for the league’s weakest team, full for its strongest. It rates the opponent, not the opponent’s schedule.</span>
                       </div>
                       <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}>The rule everywhere: a <b>coloured bar</b> is how hard something is <b>for the team you’re looking at</b>. A team’s <b>own strength</b> is drawn differently — a grey bar growing either side of a centre line, the average team. Game cards also show <b>who’s favoured</b>, from the gap between the two ratings, on a neutral field.</div>
-                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}><b>Expected vs result.</b> Every game is judged against what was expected before kickoff: ESPN’s win chance at kickoff, the closing betting line, and — from week 4 — our own FPI favourite, frozen each Wednesday because ratings aren’t kept. A played game’s card shows how each did; the strip above the tower keeps the week’s score and the season’s.</div>
+                      <div style={{ fontSize: '11.5px', color: '#4b5058', lineHeight: 1.5, marginBottom: '11px' }}><b>Expected vs result.</b> Every game is judged against what was expected before kickoff: ESPN’s win chance at kickoff, the closing betting line, and — from week 4 — the FPI favourite, ESPN’s team rating written down each Wednesday because ratings aren’t kept. A played game’s card shows how each did; the strip above the tower keeps the week’s score and the season’s.</div>
                     </>}
                     <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Keyboard & mouse</div>
                     {([['Previous / next week', '← →'], ['Play / pause', 'Space'], ['Fullscreen', 'F'], ['Game box score', 'click a box'], ['Team roster', 'click a name']] as [string, string][]).map(([k, key]) => (
@@ -1157,7 +1167,10 @@ export class SeasonTower extends React.Component<Props, State> {
 
         {v.weekCard && (
           <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 14px', padding: '6px 18px', borderBottom: '1px solid #EDEFF2', background: '#FBFBFC', fontSize: '11.5px', color: '#727781', fontWeight: 600 }}>
-            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Week {v.weekCard.w} · expected vs result</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Week {v.weekCard.w} · expected vs result</span>
+              <button onClick={v.onPickHelp} title="What is this?" aria-label="What is expected vs result?" style={{ width: '16px', height: '16px', borderRadius: '50%', border: '1px solid #C9CDD3', background: '#fff', color: '#727781', fontSize: '10px', fontWeight: 800, lineHeight: 1, padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
+            </span>
             {v.weekCard.n === 0
               ? <span>Expectations frozen {v.weekCard.when}, before kickoff — results fill in as games finish</span>
               : <>
@@ -1165,10 +1178,11 @@ export class SeasonTower extends React.Component<Props, State> {
                   <span>Favourite won: {[
                     v.weekCard.espnOf ? ['ESPN at kickoff', v.weekCard.espn, v.weekCard.espnOf] : null,
                     v.weekCard.lineOf ? ['closing line', v.weekCard.line, v.weekCard.lineOf] : null,
-                    v.weekCard.fpiOf ? ['our FPI', v.weekCard.fpi, v.weekCard.fpiOf] : null,
-                  ].filter(Boolean).map((x: any, i: number) => <span key={i}>{i ? ' · ' : ''}{x[0]} <b style={{ color: '#15181d' }}>{x[1]}/{x[2]}</b></span>)}</span>
+                    v.weekCard.fpiOf ? ['FPI (Wed)', v.weekCard.fpi, v.weekCard.fpiOf] : null,
+                  ].filter(Boolean).map((x: any, i: number) => <span key={i}>{i ? ' · ' : ''}{x[0]} <b style={{ color: '#15181d' }}>{share(x[1], x[2])}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{x[1]}/{x[2]}</span></span>)}
+                    <span style={{ color: '#a0a5ad', fontWeight: 500 }}> · normal ≈ 2 in 3</span></span>
                   {v.weekCard.upset && <span>Biggest upset: <b style={{ color: '#C23A2E' }}>{v.weekCard.upset}</b></span>}
-                  {v.seasonCard && v.seasonCard.weeks > 1 && <span style={{ marginLeft: 'auto' }}>Season, {v.seasonCard.weeks} weeks: ESPN <b style={{ color: '#15181d' }}>{v.seasonCard.espn}/{v.seasonCard.espnOf}</b> · line <b style={{ color: '#15181d' }}>{v.seasonCard.line}/{v.seasonCard.lineOf}</b>{v.seasonCard.fpiOf ? <> · our FPI <b style={{ color: '#15181d' }}>{v.seasonCard.fpi}/{v.seasonCard.fpiOf}</b></> : null}</span>}
+                  {v.seasonCard && v.seasonCard.weeks > 1 && <span style={{ marginLeft: 'auto' }}>Season, {v.seasonCard.weeks} weeks: ESPN <b style={{ color: '#15181d' }}>{share(v.seasonCard.espn, v.seasonCard.espnOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.espn}/{v.seasonCard.espnOf}</span> · line <b style={{ color: '#15181d' }}>{share(v.seasonCard.line, v.seasonCard.lineOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.line}/{v.seasonCard.lineOf}</span>{v.seasonCard.fpiOf ? <> · FPI (Wed) <b style={{ color: '#15181d' }}>{share(v.seasonCard.fpi, v.seasonCard.fpiOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.fpi}/{v.seasonCard.fpiOf}</span></> : null}</span>}
                 </>}
           </div>
         )}
@@ -1264,7 +1278,7 @@ export class SeasonTower extends React.Component<Props, State> {
                   {v.popJudge && (
                     <div style={{ marginTop: '16px', border: '1px solid #EDEFF2', borderRadius: '12px', padding: '10px 14px' }}>
                       <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', marginBottom: '6px' }}>Expected before kickoff</div>
-                      {([['ESPN at kickoff', v.popPick.espn, v.popJudge.espn, null], ['Closing line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], [v.popPick.kickoff ? 'Our FPI' : `Our FPI · ${v.popPick.when}`, v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).filter((x: any) => x[2] || x[1] !== '—').map(([k, val, j, miss]) => (
+                      {([['ESPN at kickoff', v.popPick.espn, v.popJudge.espn, null], ['Closing line', v.popPick.line, v.popJudge.line, v.popJudge.line && v.popJudge.line.miss], [v.popPick.kickoff ? 'FPI (Wed)' : `FPI · frozen ${v.popPick.when}`, v.popPick.fpi, v.popJudge.fpi, v.popJudge.fpi && v.popJudge.fpi.miss]] as any[]).filter((x: any) => x[2] || x[1] !== '—').map(([k, val, j, miss]) => (
                         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', fontSize: '12px' }}>
                           <span style={{ flex: '0 0 104px', color: '#9298a1', fontWeight: 600 }}>{k}</span>
                           <span style={{ flex: 1, fontWeight: 800, color: '#15181d', fontVariantNumeric: 'tabular-nums' }}>{val}</span>
@@ -1532,6 +1546,34 @@ export class SeasonTower extends React.Component<Props, State> {
           )}
         </div>
 
+        {/* ---------- expected vs result, explained ---------- */}
+        {v.pickHelpOpen && (
+          <div onClick={v.onClosePickHelp} style={{ position: 'fixed', inset: 0, background: 'rgba(16,18,22,.42)', zIndex: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div onClick={mStop} style={{ width: 'min(420px,94vw)', maxHeight: '86vh', overflow: 'auto', background: '#fff', borderRadius: '16px', boxShadow: '0 24px 60px rgba(16,18,22,.32)', padding: '18px 20px', fontSize: '12.5px', color: '#4b5058', lineHeight: 1.55 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#15181d' }}>Expected vs result</span>
+                <button onClick={v.onClosePickHelp} aria-label="Close" style={{ border: 'none', background: '#F1F2F4', borderRadius: '8px', width: '28px', height: '28px', fontSize: '15px', cursor: 'pointer', color: '#5c616b' }}>✕</button>
+              </div>
+              <p style={{ margin: '0 0 10px' }}>Before every game, three sources name a <b>favourite</b>. When the game ends we check one thing: <b>did the favourite win?</b></p>
+              {([
+                ['ESPN at kickoff', 'ESPN’s win chance for each side when the game kicked off, home field included.'],
+                ['Closing line', 'The betting market’s last point spread before kickoff — the team giving points is the favourite.'],
+                ['FPI (Wed)', 'The better team by ESPN’s FPI rating, on a neutral field — written down each Wednesday before the week, from week 4 on.'],
+              ] as [string, string][]).map(([k, t]) => (
+                <div key={k} style={{ display: 'flex', gap: '10px', padding: '5px 0', borderTop: '1px solid #F0F1F3' }}>
+                  <b style={{ flex: '0 0 104px', color: '#15181d' }}>{k}</b><span>{t}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1', margin: '12px 0 4px' }}>Reading the strip</div>
+              <p style={{ margin: '0 0 6px' }}><b style={{ color: '#15181d' }}>9/15</b>, for example, means the favourite won 9 of the week’s 15 games. A tie counts as a miss. Favourites usually win about <b>two games in three</b> in the NFL (“normal ≈ 2 in 3”), so a third of them losing is part of the game.</p>
+              <p style={{ margin: '0 0 6px' }}>The big number is the share, the small one the count: <b style={{ color: '#15181d' }}>60%</b> <span style={{ color: '#a0a5ad' }}>9/15</span>.</p>
+              <p style={{ margin: '0 0 6px' }}><b style={{ color: '#C23A2E' }}>Biggest upset</b> is the winner ESPN gave the smallest chance at kickoff. Every upset — a winner given under 50% — carries a <b style={{ color: '#C23A2E' }}>red corner</b> on its box in the tower.</p>
+              <p style={{ margin: '0 0 6px' }}><b>Season</b> adds up every week so far. FPI (Wed) starts in week 4, so it counts fewer games.</p>
+              <p style={{ margin: 0 }}>Click any played game for its own verdict: who each source favoured, and by how much they were off.</p>
+            </div>
+          </div>
+        )}
+
         {/* ---------- more sports experiences ("+") ---------- */}
         {v.moreOpen && (
           <div onClick={v.onCloseMore} style={{ position: 'fixed', inset: 0, background: 'rgba(16,18,22,.42)', zIndex: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -1571,6 +1613,9 @@ export class SeasonTower extends React.Component<Props, State> {
 // A single game cell — opponent headline + score/week line, with the away `@` marker as a
 // smaller glyph and the winning score number emphasized.
 // The one strength meter used everywhere: ink on a pale track, the fill a 0..1 fraction.
+// 9 of 15 -> "60%": the share reads faster than the fraction when comparing sources
+const share = (n: number, of: number) => of ? Math.round(n / of * 100) + '%' : '—'
+
 function Meter({ f, w = 44, h = 4, c = '#15181d', t = '#E4E7EB' }: { f: number, w?: number | string, h?: number, c?: string, t?: string }) {
   return (
     <span style={{ display: 'inline-block', height: h + 'px', borderRadius: h / 2 + 'px', background: t, overflow: 'hidden', verticalAlign: 'middle',
