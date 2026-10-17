@@ -350,16 +350,18 @@ function careerBox(p,extra){
   if(tier==='gold') head=`${LOMBARDI}<div class="pc-hd"><b>${r.length>1?r.length+'× ':''}Super Bowl champion</b>
       <div class="prings-c">${r.map(y=>`<span class="ring" title="Super Bowl ${sb(y).sb} · ${y} season · ${sb(y).win} ${sb(y).score} ${sb(y).lose}">${sb(y).sb}</span>`).join('')}</div></div>`
   else if(tier==='silver') head=`${MEDAL}<div class="pc-hd"><b>${aw[0]}</b>${aw.length>1?`<div class="pc-aw">${aw.slice(1).join(' &middot; ')}</div>`:''}</div>`
-  else head=`<div class="pc-hd"><b>Career</b></div>`
+  else head=''
+  // the career told in order: how he arrived, what he has done, his best year, honours
   const rows=[]
-  if(tier==='gold'&&m.length) rows.push(['SB MVP',`★ ${m.map(y=>sb(y).sb).join(' · ')}`])
-  if(tier==='gold'&&aw.length) rows.push(['Awards',aw.join(' · ')])
-  if(c&&c.c.length) rows.push([tier==='plain'?'Totals':'Career',c.c.map(([v,l])=>`<b>${v}</b> ${l}`).join(' · ')+(c.gp?` · ${c.gp} games`:'')])
+  if(c) rows.push(['Drafted', c.d ? `<b>${c.d.y}</b> · round ${c.d.r}, pick ${c.d.p}${c.d.t?' · '+c.d.t:''}`
+                                  : `<b>Undrafted</b>${c.debut?' · in the NFL since '+c.debut:''}`])
+  if(c&&c.c.length) rows.push(['Career',c.c.map(([v,l])=>`<b>${v}</b> ${l}`).join(' · ')+(c.gp?` · <b>${c.gp}</b> games`:'')])
   if(c&&c.best) rows.push(['Best season',`<b>${c.best[1]}</b> ${c.best[2]} · ${c.best[0]}`])
-  if(c) rows.push(['Drafted', c.d ? `${c.d.y} · round ${c.d.r}, pick ${c.d.p}${c.d.t?' · '+c.d.t:''}`
-                                  : `Undrafted${c.debut?' · in the NFL since '+c.debut:''}`])
-  return `<div class="pcareer ${tier}${extra?' '+extra:''}"><div class="pc-top">${head}</div>
-    ${rows.map(([k,v])=>`<div class="pc-row"><span>${k}</span><em>${v}</em></div>`).join('')}</div>`
+  if(tier==='gold'&&m.length) rows.push(['SB MVP',`<span class="gold">★ ${m.map(y=>sb(y).sb).join(' · ')}</span>`])
+  if(tier==='gold'&&aw.length) rows.push(['Awards',aw.join(' · ')])
+  return `<div class="pcareer ${tier}${extra?' '+extra:''}">${head?`<div class="pc-top">${head}</div>`:''}
+    ${bioOf(p)}
+    <div class="pc-rows">${rows.map(([k,v])=>`<div class="pc-row"><span>${k}</span><em>${v}</em></div>`).join('')}</div></div>`
 }
 // The shirt number, as big as the card allows, behind the portrait -- outlined, so it
 // reads as the jersey without fighting the face in front of it.
@@ -455,10 +457,10 @@ function playerCard(p, gLabel, rank){
       </div>
     </div>
     <div class="pbody">
-      <div class="pshot">${jerseyOf(p)?`<div class="pjersey" style="${ringsOf(p).length
+      <div class="pshot"><div class="pfig">${jerseyOf(p)?`<div class="pjersey" style="${ringsOf(p).length
           ? `color:rgba(233,196,106,.12);-webkit-text-stroke:2.5px ${GOLD}`   // a champion's number is gold
-          : `color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)`}">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'">${careerBox(p)}</div>
-      ${bioOf(p)}${careerBox(p,'m')}
+          : `color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)`}">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>${careerBox(p)}</div>
+      ${careerBox(p,'m')}
       <div class="pright">
         <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>{ const rk=rankIn(p,cat,key)
           return `
