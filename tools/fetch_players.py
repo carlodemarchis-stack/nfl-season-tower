@@ -35,8 +35,10 @@ norm = lambda a: ALIAS.get(a, a)
 # Specialists take two boards for the same reason -- kickers never appear on a punting
 # board and punters never appear on a kicking one.
 GROUPS = [
-    # key, label, [(ranking stat, positions kept, how many)]
-    ("qb", "Quarterbacks",  [("passing.passingYards",     {"QB"}, 24)]),
+    # key, label, [(ranking stat, positions kept, how many[, one per club])]
+    # Quarterbacks are one per club: each team's leading passer, so all 32 have theirs
+    # and a rank reads "of 32" -- the whole league's starters, not an arbitrary cut.
+    ("qb", "Quarterbacks",  [("passing.passingYards",     {"QB"}, 32, True)]),
     ("rb", "Running backs", [("rushing.rushingYards",     {"RB", "FB"}, 24)]),
     ("wr", "Receivers",     [("receiving.receivingYards", {"WR", "TE"}, 36)]),
     ("dl", "Pass rushers",  [("defensive.sacks",          {"DE", "DT", "EDGE", "NT"}, 24)]),
@@ -57,8 +59,12 @@ def get(url):
     return json.loads(out) if out.strip() else {}
 
 
-def page(season, sort, n):
-    d = get(f"{API}&season={season}&seasontype=2&limit={n}&page=1&sort={sort}%3Adesc")
+def page(season, sort, n, everyone=False):
+    # everyone: ESPN's tables hold only "qualified" players by default, which can leave a
+    # club whose starter changed mid-season without a passer. Not for rate stats (punting
+    # average), where one long punt would top an unqualified table.
+    q = "&isqualified=false" if everyone else ""
+    d = get(f"{API}&season={season}&seasontype=2&limit={n}&page=1&sort={sort}%3Adesc{q}")
     names = {c["name"]: c["names"] for c in d.get("categories", [])}
     return d.get("athletes", []), names
 
@@ -147,11 +153,13 @@ def main(season):
     players, groups = {}, []
     for key, label, boards in GROUPS:
         kept = []
-        for sort, positions, want in boards:
-            got = 0
+        for b in boards:
+            sort, positions, want = b[:3]
+            per_club = len(b) > 3 and b[3]
+            got, clubs = 0, set()
             # over-fetch: the board is league-wide and we keep only this group's
             # positions (a QB tops rushing boards some weeks)
-            rows, names = page(season, sort, max(want * 6, 140))
+            rows, names = page(season, sort, max(want * 6, 140), everyone=per_club)
             for r in rows:
                 a = r["athlete"]
                 pos = (a.get("position") or {}).get("abbreviation")
@@ -160,6 +168,10 @@ def main(season):
                 pid = str(a["id"])
                 if pid in kept:
                     continue
+                club = norm(r.get("teamShortName") or a.get("teamShortName"))
+                if per_club and club in clubs:
+                    continue
+                clubs.add(club)
                 st = flatten(r, names)
                 if not st:
                     continue
