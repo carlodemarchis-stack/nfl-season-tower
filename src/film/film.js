@@ -307,6 +307,13 @@ function playerChart(p,I,soft){
   }
   if(post.length){ slots.push(['div',null,null]); post.forEach(g=>slots.push(['g',g,g.w])) }
   let max=1; log.forEach(g=>{ const v=gameVal(p,g,key)||0; if(v>max) max=v })
+  // y axis: three or four round values; bars scale to the top one so they read against it
+  const raw=max/4, mag=10**Math.floor(Math.log10(raw)), m=raw/mag
+  const step=(m<=1?1:m<=2?2:m<=5?5:10)*mag, top=Math.ceil(max/step-1e-9)*step
+  const dp=step<1?1:0, ticks=[]
+  for(let t=step; t<=top+1e-9; t+=step) ticks.push(t)
+  const grid=`<div class="pc-grid">${ticks.map(t=>`<i style="bottom:${t/top*100}%"></i>`
+    +`<b style="bottom:${t/top*100}%">${fmtStat(t,dp)}</b>`).join('')}<b style="bottom:0">0</b></div>`
   const best=log.reduce((a,g)=>(gameVal(p,g,key)||0)>(gameVal(p,a,key)||0)?g:a,log[0])
   const cols=slots.map(([ty,g,w])=>{
     if(ty==='div') return `<div class="pc-div"><span>Playoffs</span></div>`
@@ -316,7 +323,7 @@ function playerChart(p,I,soft){
     const v=gameVal(p,g,key)||0
     const o=TEAMS[g.o]||{}, op=o.primary||'#8A8F98'
     // every bar rises: the number is the number. The result lives on the axis instead.
-    const h=Math.max(v>0?4:0,Math.round(v/max*100))
+    const h=Math.max(v>0?4:0,Math.round(v/top*100))
     const bar=`<i style="height:${h}%;background:${op};`
       +`border:1.4px solid rgba(${soft},.18);box-shadow:0 0 0 1px rgba(${soft},.10)"></i>`
     const res=g.r==='W'?'W':g.r==='L'?'L':'T'   // the chip names the opponent; its colour is the result
@@ -330,7 +337,7 @@ function playerChart(p,I,soft){
   return `<div class="pchart">
     <div class="pc-head"><span class="pc-t">${label}, game by game</span>
       <span class="pc-max">Best ${fmtStat(gameVal(p,best,key),key==='sacks'?1:0)} ${best.h?'vs ':'@ '}${best.o}</span></div>
-    <div class="pc-plot">${cols}<div class="pc-rule"></div></div>
+    <div class="pc-plot">${grid}${cols}<div class="pc-rule"></div></div>
     <div class="pc-key"><span class="W">Won</span><span class="L">Lost</span><span class="T">Tied</span>
       <span class="op">Opponent on the axis, bar in their colour</span></div>
   </div>`

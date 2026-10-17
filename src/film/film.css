@@ -240,7 +240,12 @@
     font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;}
   .pc-t{opacity:.72;} .pc-max{opacity:.5;white-space:nowrap;}
   .pc-plot{position:relative;flex:1 1 auto;min-height:88px;max-height:340px;
-    display:flex;align-items:stretch;gap:3px;padding:2px 0;}
+    display:flex;align-items:stretch;gap:3px;padding:2px 0 2px 38px;}
+  /* y axis: faint gridlines across the bar area, values in the left margin */
+  .pc-grid{position:absolute;left:38px;right:0;top:2px;bottom:29px;pointer-events:none;z-index:0;}
+  .pc-grid i{position:absolute;left:0;right:0;height:0;border-top:1px dashed currentColor;opacity:.16;}
+  .pc-grid b{position:absolute;right:calc(100% + 7px);transform:translateY(50%);font-size:9px;
+    font-weight:800;opacity:.55;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;}
   .pc-col{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
   .pc-h{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;}
   .pc-h i{width:100%;max-width:26px;border-radius:3px 3px 0 0;display:block;}
@@ -254,7 +259,7 @@
   .pc-wk{flex:0 0 auto;height:13px;line-height:13px;text-align:center;font-size:8.5px;
     font-weight:900;font-variant-numeric:tabular-nums;opacity:.6;}
   .pc-wk.out{opacity:.28;}
-  .pc-rule{position:absolute;left:0;right:0;bottom:29px;height:1.4px;background:currentColor;
+  .pc-rule{position:absolute;left:38px;right:0;bottom:29px;height:1.4px;background:currentColor;
     opacity:.38;}
   .pc-div{flex:0 0 auto;width:1.4px;margin:0 9px;background:currentColor;opacity:.45;position:relative;}
   .pc-div span{position:absolute;left:6px;top:20px;font-size:9px;font-weight:900;letter-spacing:.9px;
@@ -295,7 +300,8 @@
     .pchart{grid-column:1/-1;grid-row:2;}
     .pc-plot{max-height:none;gap:2px;} .pc-h i{max-width:14px;}
     .pc-wk{font-size:7px;} .pc-res{height:10px;margin-top:2px;font-size:6px;letter-spacing:-.3px;}
-    .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;}
+    .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;left:28px;}
+    .pc-plot{padding-left:28px;} .pc-grid{left:28px;bottom:22px;} .pc-grid b{font-size:7.5px;right:calc(100% + 4px);}
     .pc-div{margin:0 5px;} .pc-div span{font-size:7.5px;left:4px;}
     /* club cards: the same compact identity bar; the name takes the line and the rank and
        record drop beside or under it as the width allows */
