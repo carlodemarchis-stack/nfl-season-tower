@@ -48,6 +48,7 @@ jobs:
           if [ -n "$(git status --porcelain -- src/data/results-2026.js)" ]; then
             python3 tools/fetch_players.py 2026 || echo "Player pull failed — keeping the previous leaders"
             python3 tools/fetch_rosters.py 2026 || echo "Roster pull failed — keeping the previous rosters"
+            python3 tools/fetch_keyplayers.py 2026 || echo "Key-player pull failed — keeping the previous lineups"
           fi
           # FPI drives the "Schedule" ranking. ESPN reruns it about once a week, so most
           # runs change nothing here. A failed pull keeps the previous ratings rather than
