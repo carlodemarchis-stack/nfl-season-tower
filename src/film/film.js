@@ -413,8 +413,8 @@ $('b-next').onclick=()=>{setPlay(false);go(idx+1)}
 $('b-first').onclick=()=>{setPlay(false);go(0)}
 $('b-play').onclick=()=>setPlay(!playing)
 
-/* Season / Players / Clubs -- Season is the towers page these films hang off; Players and
-   Clubs are the two films, each linking to the other. */
+/* Season / Clubs / Players -- Season is the towers page these films hang off; Clubs and
+   Players are the two films, each linking to the other. */
 function buildTabs(){
   const bar=$('sectabs'); if(!bar) return
   bar.innerHTML=''
@@ -422,7 +422,7 @@ function buildTabs(){
   home.href='./index.html'; home.title='Season Tower — all 32 clubs at once'
   bar.appendChild(home)
   // the two films, each a link to the other; the current one just goes back to its start
-  ;[['Players','player','./players.html'],['Clubs','team','./clubs.html']]
+  ;[['Clubs','team','./clubs.html'],['Players','player','./players.html']]
     .forEach(([lab,kind,href])=>{
       const b=el('a','sectab'); b.textContent=lab; b.dataset.kind=kind; b.href=href
       if((kind==='player')===(MODE==='players')) b.onclick=e=>{ e.preventDefault(); setPlay(false); go(0) }
@@ -513,7 +513,7 @@ function openHelp(){
       <li><b>g</b> or <b>/</b> &mdash; jump to any card by name or number (or click the counter)</li>
       <li><b>f</b> &mdash; fullscreen &nbsp;&middot;&nbsp; <b>h</b> or <b>?</b> &mdash; this panel &nbsp;&middot;&nbsp; <b>Esc</b> &mdash; close</li>
       <li>On a touchscreen, <b>swipe</b> left and right</li>
-      <li><b>Players</b> and <b>Clubs</b> at the top switch between the two films;
+      <li><b>Clubs</b> and <b>Players</b> at the top switch between the two films;
         <b>Season &#8599;</b> goes to the Season Tower, where all 32 clubs stand side by side</li>
       <li>Every card has its own address &mdash; copy the address bar to link one</li>
     </ul>
