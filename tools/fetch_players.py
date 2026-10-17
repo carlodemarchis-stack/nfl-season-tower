@@ -39,7 +39,7 @@ GROUPS = [
     # Quarterbacks are one per club: each team's leading passer, so all 32 have theirs
     # and a rank reads "of 32" -- the whole league's starters, not an arbitrary cut.
     ("qb", "Quarterbacks",  [("passing.passingYards",     {"QB"}, 32, True)]),
-    ("rb", "Running backs", [("rushing.rushingYards",     {"RB", "FB"}, 24)]),
+    ("rb", "Running backs", [("rushing.rushingYards",     {"RB", "FB"}, 32, True)]),
     ("wr", "Receivers",     [("receiving.receivingYards", {"WR", "TE"}, 36)]),
     ("dl", "Pass rushers",  [("defensive.sacks",          {"DE", "DT", "EDGE", "NT"}, 24)]),
     ("lb", "Linebackers",   [("defensive.totalTackles",   {"LB", "ILB", "OLB", "MLB"}, 24)]),
@@ -48,8 +48,10 @@ GROUPS = [
     ("db", "Secondary",     [("defensive.passesDefended", {"CB", "S", "FS", "SS", "DB"}, 24)]),
     # Two boards with their own quotas -- a kicker never appears on a punting
     # leaderboard, so a single shared board returns kickers only.
-    ("k",  "Specialists",   [("kicking.fieldGoalsMade",    {"PK", "K"}, 10),
-                             ("punting.grossAvgPuntYards", {"P"}, 6)]),
+    # Kickers and punters are one per club too. A club's punter is the one who punts
+    # most (an average from one punt means nothing); the board is then shown by average.
+    ("k",  "Specialists",   [("kicking.fieldGoalsMade",    {"PK", "K"}, 32, True),
+                             ("punting.punts",             {"P"}, 32, True, ("punting", "grossAvgPuntYards"))]),
 ]
 
 
@@ -156,6 +158,8 @@ def main(season):
         for b in boards:
             sort, positions, want = b[:3]
             per_club = len(b) > 3 and b[3]
+            order = b[4] if len(b) > 4 else None
+            start = len(kept)
             got, clubs = 0, set()
             # over-fetch: the board is league-wide and we keep only this group's
             # positions (a QB tops rushing boards some weeks)
@@ -184,6 +188,10 @@ def main(season):
                 got += 1
                 if got >= want:
                     break
+            if order:   # picked by volume, shown by the stat the position is judged on
+                cat, stat = order
+                kept[start:] = sorted(kept[start:], key=lambda i: -float(
+                    (players[i]["st"].get(cat) or {}).get(stat) or 0))
         groups.append({"key": key, "label": label,
                        "sort": boards[0][0], "ids": kept})
         print(f"  {label:15} {len(kept):>3} cards   (leader {players[kept[0]]['n']})"

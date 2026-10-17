@@ -311,12 +311,16 @@ const BIO={}
 for(const ab in ROSTERS) for(const r of ROSTERS[ab].players) BIO[r.id]=r
 function bioOf(p){
   const b=BIO[p.id]; if(!b) return ''
-  const exp=b.exp===0?'Rookie':b.exp?`${b.exp} yrs in the NFL`:null
+  const exp=b.exp===0?'Rookie':b.exp?`${b.exp} yrs`:null
   const rows=[b.age?['Age',b.age]:null, b.ht?['Height',b.ht.replace("' ",'′').replace('"','″')]:null,
-    b.wt?['Weight',b.wt]:null, b.col?['College',b.col]:null, exp?['Experience',exp]:null].filter(Boolean)
-  return `<div class="pbio">${b.j?`<div class="pbio-no">#${b.j}</div>`:''}
-    ${rows.map(([k,v])=>`<div class="pbio-r"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
+    b.wt?['Weight',b.wt.replace(' lbs','')+' lb']:null, exp?['In the NFL',exp]:null,
+    b.col?['College',b.col]:null].filter(Boolean)
+  return `<div class="pbio">${rows.map(([k,v])=>
+    `<div class="pbio-c${k==='College'?' wide':''}"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
 }
+// The shirt number, as big as the card allows, behind the portrait -- outlined, so it
+// reads as the jersey without fighting the face in front of it.
+const jerseyOf=p=>(BIO[p.id]||{}).j||''
 const statVal=(p,cat,key)=>{ const v=(p.st[cat]||{})[key]; return (v==null)?null:v }
 const fmtStat=(v,dp)=> v==null ? '—'
   : (dp?Number(v).toFixed(dp):Math.round(v).toLocaleString('en-US'))
@@ -399,7 +403,7 @@ function playerCard(p, gLabel, rank){
     <div class="logo-bg" style="--tone:${I==='#ffffff'?'255,255,255':'18,20,26'}"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="" onerror="this.closest('.logo-bg').remove()"></div>
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="${p.team}" onerror="this.onerror=null;this.parentNode.textContent='${p.team}'"></div>
-      <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${p.pos} · ${p.team}</span></div>
+      <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${jerseyOf(p)?'#'+jerseyOf(p)+' · ':''}${p.pos} · ${p.team}</span></div>
         <div class="tb-sub">NFL · 2026 · ${gLabel} · #${rank} by ${gLabel.toLowerCase()==='specialists'?'their board':'the group stat'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
@@ -408,7 +412,7 @@ function playerCard(p, gLabel, rank){
       </div>
     </div>
     <div class="pbody">
-      <div class="pshot"><img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
+      <div class="pshot">${jerseyOf(p)?`<div class="pjersey" style="color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
       ${bioOf(p)}
       <div class="pright">
         <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>{ const rk=rankIn(p,cat,key)

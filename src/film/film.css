@@ -244,13 +244,18 @@
   .pmore-t{opacity:.55;margin-right:2px;}
   .pm{white-space:nowrap;opacity:.8;} .pm b{font-size:17px;font-weight:900;letter-spacing:-.4px;
     margin-right:5px;font-variant-numeric:tabular-nums;text-transform:none;opacity:1;}
-  /* bio: shares the portrait's column, above the cut-out */
-  .pbio{grid-column:1;grid-row:1;align-self:start;position:relative;z-index:2;display:flex;
-    flex-direction:column;gap:5px;padding-top:6px;max-width:300px;}
-  .pbio-no{font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1;opacity:.9;margin-bottom:4px;}
-  .pbio-r{display:flex;gap:10px;align-items:baseline;font-size:12.5px;}
-  .pbio-r span{flex:0 0 78px;font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.55;}
-  .pbio-r b{font-weight:800;}
+  /* bio: a small grid at the top of the portrait's column */
+  .pbio{grid-column:1;grid-row:1;align-self:start;position:relative;z-index:2;display:grid;
+    grid-template-columns:repeat(4,auto);justify-content:start;gap:10px 22px;padding-top:4px;}
+  .pbio-c{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .pbio-c.wide{grid-column:1/-1;}
+  .pbio-c span{font-size:8.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.55;}
+  .pbio-c b{font-size:16px;font-weight:900;letter-spacing:-.2px;white-space:nowrap;}
+  /* the shirt number, huge and outlined, behind the portrait */
+  .pjersey{position:absolute;z-index:0;left:50%;top:47%;transform:translate(-50%,-50%);
+    font-size:clamp(190px,25vw,400px);font-weight:900;line-height:.8;letter-spacing:-.05em;
+    font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;}
+  .pshot img{position:relative;z-index:1;}
   /* the season, game by game: every bar rises, and the result sits on the axis */
   .pchart{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px;}
   .pc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
@@ -318,9 +323,9 @@
     .pmore{grid-column:1/-1;grid-row:2;padding:6px 10px;gap:4px 12px;font-size:8px;}
     .pm b{font-size:14px;} .pst em{font-size:8.5px;}
     /* the bio becomes one wrapped line under the chart */
-    .pbio{grid-column:1/-1;grid-row:4;flex-direction:row;flex-wrap:wrap;gap:3px 14px;padding:0;max-width:none;}
-    .pbio-no{font-size:13px;letter-spacing:0;margin:0;} .pbio-r{font-size:11px;gap:5px;}
-    .pbio-r span{flex:0 0 auto;font-size:7.5px;}
+    .pbio{grid-column:1/-1;grid-row:4;grid-template-columns:repeat(5,auto);gap:4px 14px;padding:0;}
+    .pbio-c.wide{grid-column:auto;} .pbio-c b{font-size:12px;} .pbio-c span{font-size:7px;}
+    .pjersey{font-size:96px;top:46%;-webkit-text-stroke-width:1.4px;}
     .pc-plot{max-height:none;gap:2px;} .pc-h i{max-width:14px;}
     .pc-wk{font-size:7px;} .pc-res{height:10px;margin-top:2px;font-size:6px;letter-spacing:-.3px;}
     .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;left:28px;}
