@@ -3,6 +3,7 @@ import { RESULTS2026 as RESULTS } from '../data/results-2026.js'
 import { ROSTERS2026 as ROSTERS } from '../data/rosters-2026.js'
 import { PLAYERS2026 as PLAYERS } from '../data/players-2026.js'
 import { KEYPLAYERS2026 as KEYS } from '../data/keyplayers-2026.js'
+import { TITLES } from '../data/titles.js'
 
 /* Two films share this script: players.html (the leaders, by position group) and
    clubs.html (a card per club). The page says which one it is. */
@@ -316,7 +317,24 @@ function bioOf(p){
     b.wt?['Weight',b.wt.replace(' lbs','')+' lb']:null, exp?['In the NFL',exp]:null,
     b.col?['College',b.col]:null].filter(Boolean)
   return `<div class="pbio">${rows.map(([k,v])=>
-    `<div class="pbio-c${k==='College'?' wide':''}"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
+    `<div class="pbio-c${k==='College'?' wide':''}"><span>${k}</span><b>${v}</b></div>`).join('')}${ringsBlock(p)}</div>`
+}
+/* Super Bowl champions get the gold: a ring for every Super Bowl he played in and won
+   (tools/fetch_titles.py reads the winner's game roster), and his Super Bowl MVPs. */
+const GOLD='#E9C46A'
+const LOMBARDI=`<svg class="lomb" viewBox="0 0 24 44" aria-hidden="true"><g fill="#E9C46A"><ellipse cx="12" cy="8" rx="5.2" ry="8" transform="rotate(-28 12 8)"/>
+  <path d="M10.6 15.5h2.8l1.3 16.5H9.3z"/><rect x="6.5" y="32" width="11" height="2.6" rx="1"/>
+  <path d="M5.5 35.4h13l1.6 7.6H3.9z"/></g></svg>`
+const ringsOf=p=>(TITLES.rings[p.id]||[]).slice().sort()
+const sbMvpOf=p=>(TITLES.mvp[p.id]||[]).slice().sort()
+function ringsBlock(p){
+  const r=ringsOf(p); if(!r.length) return ''
+  const m=sbMvpOf(p), sb=y=>TITLES.sb[y]||{}
+  const chip=y=>`<span class="ring" title="Super Bowl ${sb(y).sb} · ${y} season · ${sb(y).win} ${sb(y).score} ${sb(y).lose}">${sb(y).sb}</span>`
+  return `<div class="prings">${LOMBARDI}<div class="prings-t">
+      <b>${r.length>1?r.length+'× ':''}Super Bowl champion</b>
+      <div class="prings-c">${r.map(chip).join('')}</div>
+      ${m.length?`<div class="prings-m">★ Super Bowl MVP · ${m.map(y=>sb(y).sb).join(' · ')}</div>`:''}</div></div>`
 }
 // The shirt number, as big as the card allows, behind the portrait -- outlined, so it
 // reads as the jersey without fighting the face in front of it.
@@ -403,7 +421,7 @@ function playerCard(p, gLabel, rank){
     <div class="logo-bg" style="--tone:${I==='#ffffff'?'255,255,255':'18,20,26'}"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="" onerror="this.closest('.logo-bg').remove()"></div>
     <div class="topbar">
       <div class="tb-tile" style="background:rgba(255,255,255,.94);color:${prim}"><img class="tb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/${(p.team||'').toLowerCase()}.png" alt="${p.team}" onerror="this.onerror=null;this.parentNode.textContent='${p.team}'"></div>
-      <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${jerseyOf(p)?'#'+jerseyOf(p)+' · ':''}${p.pos} · ${p.team}</span></div>
+      <div class="tb-id"><div class="tb-name">${p.n} <span class="tb-zone" style="background:rgba(${soft},.14);color:${I}">${jerseyOf(p)?'#'+jerseyOf(p)+' · ':''}${p.pos} · ${p.team}</span>${ringsOf(p).length?`<span class="tb-ring" title="Super Bowl champion">${LOMBARDI}${ringsOf(p).length>1?'×'+ringsOf(p).length:''}</span>`:''}</div>
         <div class="tb-sub">NFL · 2026 · ${gLabel} · #${rank} by ${gLabel.toLowerCase()==='specialists'?'their board':'the group stat'}</div></div>
       <div class="tb-spacer"></div>
       <div class="tb-right">
@@ -412,7 +430,9 @@ function playerCard(p, gLabel, rank){
       </div>
     </div>
     <div class="pbody">
-      <div class="pshot">${jerseyOf(p)?`<div class="pjersey" style="color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
+      <div class="pshot">${jerseyOf(p)?`<div class="pjersey" style="${ringsOf(p).length
+          ? `color:rgba(233,196,106,.12);-webkit-text-stroke:2.5px ${GOLD}`   // a champion's number is gold
+          : `color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)`}">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
       ${bioOf(p)}
       <div class="pright">
         <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>{ const rk=rankIn(p,cat,key)
