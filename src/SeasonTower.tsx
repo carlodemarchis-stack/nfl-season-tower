@@ -593,6 +593,8 @@ export class SeasonTower extends React.Component<Props, State> {
       chart, chartAccent: prim,
       abbr, name: t.name, prim, txt, rec: rec.str, div: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : t.div === 'W' ? 'West' : t.div}`,
       coach: (rost && rost.coach) || '—', count: (rost && rost.count) || 0,
+      // the film is built on 2026 only, so earlier seasons have no club card to open
+      filmUrl: this.season() === '2026' ? `./film.html#${abbr}` : null,
       headStyle: `background:linear-gradient(135deg,${prim} 0%,${this.mix(prim, '#000000', .25)} 100%);color:${txt};`,
       badgeStyle: `background:${txt === '#ffffff' ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.08)'};color:${txt};`,
       hasRost: !!rost, unitChips, groups, total, played,
@@ -1067,6 +1069,8 @@ export class SeasonTower extends React.Component<Props, State> {
               {!v.isNarrow && <span style={{ color: '#B0B4BC' }}>·</span>}
               {!v.isNarrow && <span>Season Tower</span>}
               <span style={{ marginLeft: v.isNarrow ? '4px' : '10px', fontSize: v.isNarrow ? '10px' : '12px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>{v.playedStr}</span>
+              {/* The film is the other half of this app: player leaders and a card per club. */}
+              <a href="./film.html" title="Season Film — player leaders and a card for every club" style={{ marginLeft: v.isNarrow ? '4px' : '8px', fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, letterSpacing: '.3px', color: '#15181d', textDecoration: 'none', border: '1px solid #D7DAE0', background: '#fff', borderRadius: '999px', padding: v.isNarrow ? '3px 8px' : '4px 11px', whiteSpace: 'nowrap' }}>{v.isNarrow ? 'Film ↗' : 'Season Film ↗'}</a>
               {v.seasonOpen && (
                 <>
                   <div onClick={v.onToggleSeason} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
@@ -1381,6 +1385,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <span style={{ opacity: .5 }}>·</span>
                         <span>{v.tm.coach}</span>
                       </div>
+                      {v.tm.filmUrl && <a href={v.tm.filmUrl} style={{ display: 'inline-block', marginTop: '9px', fontSize: '11px', fontWeight: 800, letterSpacing: '.3px', color: 'inherit', textDecoration: 'none', borderRadius: '999px', padding: '4px 11px', ...css(v.tm.badgeStyle) }}>Club card in the Season Film ↗</a>}
                     </div>
                   </div>
                 </div>

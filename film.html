@@ -34,7 +34,9 @@
   /* horizontal deck — full-bleed brand cards */
   .stage{position:fixed;inset:0;overflow:hidden;}
   .track{display:flex;height:100%;transition:transform .52s cubic-bezier(.22,.61,.36,1);}
-  .slide{flex:0 0 100%;height:100%;}
+  /* min-width:0 -- without it a card wider than the screen (a long club name on a phone)
+     widens its slide, and every translateX(-n*100%) after it lands off by that much */
+  .slide{flex:0 0 100%;min-width:0;height:100%;}
   .card{position:relative;width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;
     content-visibility:auto;contain-intrinsic-size:100vw 100vh;}
   /* the card either side of this one is painted up front, so the slide never
@@ -321,6 +323,22 @@
     .pc-wk{font-size:7px;} .pc-res{height:10px;margin-top:2px;font-size:6px;letter-spacing:-.3px;}
     .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;}
     .pc-div{margin:0 5px;} .pc-div span{font-size:7.5px;left:4px;}
+    /* club cards: the same compact identity bar; the name takes the line and the rank and
+       record drop beside or under it as the width allows */
+    .card:not(.pcard) .topbar{padding:44px 16px 10px;gap:8px 11px;flex-wrap:wrap;}
+    .card:not(.pcard) .tb-tile{width:40px;height:40px;border-radius:10px;padding:5px;}
+    .card:not(.pcard) .tb-id{flex:1 1 170px;gap:4px;}
+    .card:not(.pcard) .tb-name{font-size:19px;gap:6px;letter-spacing:-.3px;}
+    .card:not(.pcard) .tb-zone{font-size:8px;padding:3px 8px;letter-spacing:.5px;}
+    .card:not(.pcard) .tb-sub{font-size:8.5px;letter-spacing:.5px;}
+    .card:not(.pcard) .tb-spacer{display:none;}
+    .card:not(.pcard) .tb-right{gap:12px;margin-left:auto;}
+    .card:not(.pcard) .tb-rankbig b{font-size:30px;letter-spacing:-1.5px;}
+    .card:not(.pcard) .tb-rankbig small{font-size:10px;}
+    .card:not(.pcard) .tb-rec b{font-size:18px;} .card:not(.pcard) .tb-rec .pf{font-size:8.5px;}
+    .card:not(.pcard) .grid{padding:12px 16px 96px;gap:14px;}
+    .card:not(.pcard) .logo-bg{width:90%;opacity:.6;}
+    .card:not(.pcard) .tower{--ch:22px;}   /* 18 weeks on one phone screen, players right after */
   }
 </style>
 </head>
