@@ -136,7 +136,9 @@
   #count:hover{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;}
   #count b{color:#fff;font-weight:700;}
   #count .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
-  #count .nm{max-width:150px;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em;}
+  /* fixed widths, so the buttons either side never move as the name and number change */
+  #count .crumb{display:inline-block;min-width:7.4em;text-align:center;}
+  #count .nm{flex:0 0 160px;width:160px;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em;text-align:left;}
   /* the match week is this film's own control -- the other films pick a season here */
   #wk{height:28px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
     background:rgba(255,255,255,.05);color:var(--teal);font-family:inherit;font-weight:700;
