@@ -453,17 +453,27 @@ function computeStats(week){
 // Deck order + playoff seeds are FROZEN at the latest played week — changing the week only updates
 // each card's values in place, so the cards never reshuffle.
 function freezeRanking(){
+  // Deck order = the towers' League · Wins order (same comparator as rankCmp there), so a
+  // team sits at the same number on both pages.
   ranked=Object.keys(TEAMS).sort((a,b)=>{
+    const A=stat[a],B=stat[b]
+    if(B.W!==A.W) return B.W-A.W
+    if(B.pct!==A.pct) return B.pct-A.pct
+    if(A.L!==B.L) return A.L-B.L
+    return a<b?-1:1
+  })
+  // Seeds follow the NFL's own rule, win percentage -- not the deck's wins order, which
+  // would favour a team that has simply played more games (byes fall unevenly).
+  const byPct=Object.keys(TEAMS).sort((a,b)=>{
     const A=stat[a],B=stat[b]
     if(B.pct!==A.pct) return B.pct-A.pct
     if(B.W!==A.W) return B.W-A.W
     if(A.L!==B.L) return A.L-B.L
-    if(B.diff!==A.diff) return B.diff-A.diff   // early in a season many records tie
     return a<b?-1:1
   })
   seed={}
   for(const conf of ['AFC','NFC']){
-    const confTeams=ranked.filter(a=>TEAMS[a].conf===conf)
+    const confTeams=byPct.filter(a=>TEAMS[a].conf===conf)
     const seen={}, winners=[]
     for(const a of confTeams){ const d=TEAMS[a].div; if(!seen[d]){ seen[d]=1; winners.push(a) } }
     winners.forEach((a,i)=>seed[a]={n:i+1,kind:'div'})
@@ -762,6 +772,8 @@ let idx=0, playing=false, timer=null
 function idxFromHash(){
   const raw=decodeURIComponent((location.hash||'').replace(/^#/,'')).trim()
   if(!raw) return 0
+  if(/^(teams|clubs)$/i.test(raw)) return Math.max(0,DECK.findIndex(c=>c.kind==='team'))
+  if(/^players$/i.test(raw)) return 0
   const t=DECK.findIndex(c=>c.kind==='team'&&c.abbr===raw.toUpperCase()); if(t>=0) return t
   const p=DECK.findIndex(c=>c.id===raw); if(p>=0) return p
   const n=parseInt(raw,10); if(!isNaN(n)&&n>=1&&n<=DECK.length) return n-1
@@ -803,7 +815,7 @@ function buildTabs(){
   const home=el('a','sectab link'); home.textContent='Season ↗'
   home.href='./index.html'; home.title='Season Tower — all 32 clubs at once'
   bar.appendChild(home)
-  ;[['Players','player',()=>firstOf('player')],['Clubs','team',()=>firstOf('team')]]
+  ;[['Players','player',()=>firstOf('player')],['Teams','team',()=>firstOf('team')]]
     .forEach(([lab,kind,at])=>{
       const b=el('button','sectab'); b.textContent=lab; b.dataset.kind=kind
       b.onclick=()=>{ setPlay(false); go(at()) }
@@ -881,7 +893,7 @@ function openHelp(){
   $('hbody').innerHTML=`
     <h3>How to watch</h3>
     <p>This is a film, not a page. ${DECK.length} cards: ${nP} players in seven position
-      groups, then all 32 clubs in order of record. There is no NFL top 100 here on
+      groups, then all 32 teams in the towers' order: most wins first. There is no NFL top 100 here on
       purpose &mdash; no single number ranks a left tackle against a nickel corner, so
       each group is ranked on a stat that means something for it.</p>
     <h5>Navigate</h5>
@@ -906,7 +918,7 @@ function openHelp(){
         season too. The postseason sits past the divider: <b>WC &middot; DIV &middot; CC &middot; SB</b>.</li>
       <li>Hover any bar for the week, the opponent, the score and the number.</li>
     </ul>
-    <h5>On a club card</h5>
+    <h5>On a team card</h5>
     <ul>
       <li>The tower is that club's season: <b>wins stack up</b> in the opponent's colour,
         <b>losses hang below</b> the line, the bye sits at the ceiling.</li>

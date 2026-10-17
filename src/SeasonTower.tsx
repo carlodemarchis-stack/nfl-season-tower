@@ -663,6 +663,12 @@ export class SeasonTower extends React.Component<Props, State> {
     const seg = (on: boolean) => `padding:7px 11px;border:none;background:${on ? '#15181d' : '#fff'};color:${on ? '#fff' : '#727781'};font-size:12px;font-weight:700;cursor:pointer;`
     const tw = S.throughWeek == null ? this.defaultWeek() : S.throughWeek
     const isNarrow = (S.cw || 1280) < 820
+    // The header is one row at every width: as the window narrows it sheds, in order, the
+    // games count and the Group/Rank labels, then folds Group and Rank into the cog. cw is the chart width, about the window less 32px.
+    const cwH = S.cw || 1280
+    const hdr = { count: cwH >= 1450, labels: cwH >= 1290, fold: isNarrow || cwH < 1210, slider: cwH >= 1450 ? 150 : 100,
+      // a phone keeps the ‹ ▶ › steps and drops the drag slider, so the controls are one row
+      range: cwH >= 420 }
     // Mobile keeps the same tower layout and scrolls sideways instead of flipping to rows.
     const orient = orientProp === 'rows' ? 'h' : 'v'
     const base: Dict = {
@@ -692,7 +698,7 @@ export class SeasonTower extends React.Component<Props, State> {
       onStepBack: () => this.stepWeek(-1), onStepFwd: () => this.stepWeek(1),
       stepBackDisabled: tw <= 0, stepFwdDisabled: tw >= mx,
       onSlide: (e: any) => this.buildThrough(parseInt(e.target.value, 10) || 0),
-      throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, isNarrow, playLabel: S.playing ? '❘❘' : '▶',
+      throughWeek: tw, sliderMax: mx, nonedPlayed: mx === 0, isNarrow, hdr, playLabel: S.playing ? '❘❘' : '▶',
       weekLabel: tw === 0 ? 'Through: —' : (tw >= schedMax ? 'Full season' : ('Through Wk ' + tw)),
       resultMode: colorMode !== 'opponent', oppMode: colorMode === 'opponent',
       seasonYr,
@@ -1066,11 +1072,11 @@ export class SeasonTower extends React.Component<Props, State> {
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: v.isNarrow ? '5px' : '7px', fontSize: v.isNarrow ? '15px' : '21px', fontWeight: 900, letterSpacing: '-.3px', color: '#15181d' }}>
               <span>NFL</span>
               <button onClick={v.onToggleSeason} style={css(v.seasonBtnStyle)}><span>{v.seasonYr}</span><span style={css(v.seasonArrowStyle)}>▾</span></button>
-              {!v.isNarrow && <span style={{ color: '#B0B4BC' }}>·</span>}
-              {!v.isNarrow && <span>Season Tower</span>}
-              <span style={{ marginLeft: v.isNarrow ? '4px' : '10px', fontSize: v.isNarrow ? '10px' : '12px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>{v.playedStr}</span>
-              {/* The film is the other half of this app: player leaders and a card per club. */}
-              <a href="./film.html" title="Season Film — player leaders and a card for every club" style={{ marginLeft: v.isNarrow ? '4px' : '8px', fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, letterSpacing: '.3px', color: '#15181d', textDecoration: 'none', border: '1px solid #D7DAE0', background: '#fff', borderRadius: '999px', padding: v.isNarrow ? '3px 8px' : '4px 11px', whiteSpace: 'nowrap' }}>{v.isNarrow ? 'Film ↗' : 'Season Film ↗'}</a>
+              {v.hdr.count && <span style={{ marginLeft: v.isNarrow ? '4px' : '10px', fontSize: v.isNarrow ? '10px' : '12px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>{v.playedStr}</span>}
+              {/* The film's two halves, each its own entry: a card per team, and the player leaders. */}
+              {([['Teams', './film.html#teams', "A card for every team, in this page's League · Wins order"], ['Players', './film.html#players', 'The season leaders, position by position']] as [string, string, string][]).map(([label, href, title], i) => (
+                <a key={label} href={href} title={title} style={{ marginLeft: i ? (v.isNarrow ? '3px' : '5px') : (v.isNarrow ? '4px' : '8px'), fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, letterSpacing: '.3px', color: '#15181d', textDecoration: 'none', border: '1px solid #D7DAE0', background: '#fff', borderRadius: '999px', padding: v.isNarrow ? '3px 8px' : '4px 11px', whiteSpace: 'nowrap' }}>{label} ↗</a>
+              ))}
               {v.seasonOpen && (
                 <>
                   <div onClick={v.onToggleSeason} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
@@ -1092,28 +1098,28 @@ export class SeasonTower extends React.Component<Props, State> {
                 <button onClick={v.onStepFwd} disabled={v.stepFwdDisabled} title="Next week (→)" aria-label="Next week" style={stepBtn(v.stepFwdDisabled)}>›</button>
               </div>
               <span style={{ fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, color: '#22262d', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', minWidth: v.isNarrow ? '54px' : '78px' }}>{v.weekLabel}</span>
-              <input type="range" min={0} max={Math.max(1, v.sliderMax)} step={1} value={v.throughWeek} onChange={v.onSlide} disabled={v.nonedPlayed}
+              {v.hdr.range && <input type="range" min={0} max={Math.max(1, v.sliderMax)} step={1} value={v.throughWeek} onChange={v.onSlide} disabled={v.nonedPlayed}
                 title={v.nonedPlayed ? 'No games played yet' : 'Drag to replay week by week'}
-                style={{ width: v.isNarrow ? '78px' : '150px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />
+                style={{ width: v.isNarrow ? '78px' : v.hdr.slider + 'px', accentColor: '#15181d', cursor: v.nonedPlayed ? 'default' : 'pointer', opacity: v.nonedPlayed ? 0.35 : 1 }} />}
             </div>
             {/* wide: Group / Rank inline and always visible. narrow: same two controls, folded into the cog. */}
-            {!v.isNarrow && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Group</span>
+            {!v.hdr.fold && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="Group">
+              {v.hdr.labels && <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Group</span>}
               <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
                 <button onClick={v.grpLeague} style={css(v.segLeagueStyle)}>League</button>
                 <button onClick={v.grpConf} style={css(v.segConfStyle)}>Conference</button>
                 <button onClick={v.grpDiv} style={css(v.segDivStyle)}>Division</button>
               </div>
             </div>}
-            {!v.isNarrow && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Rank</span>
+            {!v.hdr.fold && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="Rank">
+              {v.hdr.labels && <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase', color: '#9298a1' }}>Rank</span>}
               <div style={{ display: 'flex', border: '1px solid #D7DAE0', borderRadius: '8px', overflow: 'hidden' }}>
                 <button onClick={v.rankPct} style={css(v.segPctStyle)}>Win %</button>
                 <button onClick={v.rankWins} style={css(v.segWinsStyle)}>Wins</button>
                 {v.showSos && <button onClick={v.rankSos} style={css(v.segSosStyle)} title="Hardest remaining schedule first, by ESPN FPI of the opponents still to play">Schedule</button>}
               </div>
             </div>}
-            {v.isNarrow && <div style={{ position: 'relative' }}>
+            {v.hdr.fold && <div style={{ position: 'relative' }}>
               <button onClick={v.onToggleCog} title="View settings — grouping & ranking" aria-label="View settings" style={{ ...iconBtn, ...(v.cogOpen ? { borderColor: '#15181d', color: '#15181d' } : null) }}>⚙</button>
               {v.cogOpen && (
                 <>
@@ -1385,7 +1391,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <span style={{ opacity: .5 }}>·</span>
                         <span>{v.tm.coach}</span>
                       </div>
-                      {v.tm.filmUrl && <a href={v.tm.filmUrl} style={{ display: 'inline-block', marginTop: '9px', fontSize: '11px', fontWeight: 800, letterSpacing: '.3px', color: 'inherit', textDecoration: 'none', borderRadius: '999px', padding: '4px 11px', ...css(v.tm.badgeStyle) }}>Club card in the Season Film ↗</a>}
+                      {v.tm.filmUrl && <a href={v.tm.filmUrl} style={{ display: 'inline-block', marginTop: '9px', fontSize: '11px', fontWeight: 800, letterSpacing: '.3px', color: 'inherit', textDecoration: 'none', borderRadius: '999px', padding: '4px 11px', ...css(v.tm.badgeStyle) }}>Team card ↗</a>}
                     </div>
                   </div>
                 </div>
