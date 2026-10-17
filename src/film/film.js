@@ -4,6 +4,7 @@ import { ROSTERS2026 as ROSTERS } from '../data/rosters-2026.js'
 import { PLAYERS2026 as PLAYERS } from '../data/players-2026.js'
 import { KEYPLAYERS2026 as KEYS } from '../data/keyplayers-2026.js'
 import { TITLES } from '../data/titles.js'
+import { CAREERS2026 as CAREERS } from '../data/careers-2026.js'
 
 /* Two films share this script: players.html (the leaders, by position group) and
    clubs.html (a card per club). The page says which one it is. */
@@ -317,7 +318,7 @@ function bioOf(p){
     b.wt?['Weight',b.wt.replace(' lbs','')+' lb']:null, exp?['In the NFL',exp]:null,
     b.col?['College',b.col]:null].filter(Boolean)
   return `<div class="pbio">${rows.map(([k,v])=>
-    `<div class="pbio-c${k==='College'?' wide':''}"><span>${k}</span><b>${v}</b></div>`).join('')}${ringsBlock(p)}</div>`
+    `<div class="pbio-c${k==='College'?' wide':''}"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
 }
 /* Super Bowl champions get the gold: a ring for every Super Bowl he played in and won
    (tools/fetch_titles.py reads the winner's game roster), and his Super Bowl MVPs. */
@@ -327,14 +328,38 @@ const LOMBARDI=`<svg class="lomb" viewBox="0 0 24 44" aria-hidden="true"><g fill
   <path d="M5.5 35.4h13l1.6 7.6H3.9z"/></g></svg>`
 const ringsOf=p=>(TITLES.rings[p.id]||[]).slice().sort()
 const sbMvpOf=p=>(TITLES.mvp[p.id]||[]).slice().sort()
-function ringsBlock(p){
-  const r=ringsOf(p); if(!r.length) return ''
-  const m=sbMvpOf(p), sb=y=>TITLES.sb[y]||{}
-  const chip=y=>`<span class="ring" title="Super Bowl ${sb(y).sb} · ${y} season · ${sb(y).win} ${sb(y).score} ${sb(y).lose}">${sb(y).sb}</span>`
-  return `<div class="prings">${LOMBARDI}<div class="prings-t">
-      <b>${r.length>1?r.length+'× ':''}Super Bowl champion</b>
-      <div class="prings-c">${r.map(chip).join('')}</div>
-      ${m.length?`<div class="prings-m">★ Super Bowl MVP · ${m.map(y=>sb(y).sb).join(' · ')}</div>`:''}</div></div>`
+const MEDAL=`<svg class="lomb" viewBox="0 0 24 44" aria-hidden="true"><g fill="currentColor">
+  <path d="M7 2h10l-2.5 13h-5z" opacity=".55"/><circle cx="12" cy="26" r="10"/></g>
+  <path d="M12 19.5l2 4.2 4.6.6-3.4 3.2.9 4.5-4.1-2.3-4.1 2.3.9-4.5-3.4-3.2 4.6-.6z" fill="rgba(0,0,0,.35)"/></svg>`
+const AWNAME={'NFL MVP':'NFL MVP','NFL Offensive Player of the Year':'Offensive Player of the Year',
+  'NFL Defensive Player of the Year':'Defensive Player of the Year','NFL Offensive Rookie of the Year':'Offensive Rookie of the Year',
+  'NFL Defensive Rookie of the Year':'Defensive Rookie of the Year','NFL Comeback Player of the Year':'Comeback Player of the Year',
+  'Walter Payton NFL Man of the Year':'Man of the Year'}
+// "NFL MVP 2018 · 2022", one entry per award, in the order they were first won
+function awardsOf(c){
+  const by={}; (c&&c.aw||[]).forEach(([n,y])=>{ const k=AWNAME[n]||n; (by[k]=by[k]||[]).push(y) })
+  return Object.entries(by).map(([k,ys])=>`${k} ${ys.join(' · ')}`)
+}
+/* One box for every player, the plinth his portrait stands on. Gold for a Super Bowl
+   champion, silver for a major award, plain otherwise -- and always the career so far,
+   the best season and how he came into the league. */
+function careerBox(p,extra){
+  const c=CAREERS[p.id], r=ringsOf(p), m=sbMvpOf(p), aw=awardsOf(c), sb=y=>TITLES.sb[y]||{}
+  const tier=r.length?'gold':aw.length?'silver':'plain'
+  let head
+  if(tier==='gold') head=`${LOMBARDI}<div class="pc-hd"><b>${r.length>1?r.length+'× ':''}Super Bowl champion</b>
+      <div class="prings-c">${r.map(y=>`<span class="ring" title="Super Bowl ${sb(y).sb} · ${y} season · ${sb(y).win} ${sb(y).score} ${sb(y).lose}">${sb(y).sb}</span>`).join('')}</div></div>`
+  else if(tier==='silver') head=`${MEDAL}<div class="pc-hd"><b>${aw[0]}</b>${aw.length>1?`<div class="pc-aw">${aw.slice(1).join(' &middot; ')}</div>`:''}</div>`
+  else head=`<div class="pc-hd"><b>Career</b></div>`
+  const rows=[]
+  if(tier==='gold'&&m.length) rows.push(['SB MVP',`★ ${m.map(y=>sb(y).sb).join(' · ')}`])
+  if(tier==='gold'&&aw.length) rows.push(['Awards',aw.join(' · ')])
+  if(c&&c.c.length) rows.push([tier==='plain'?'Totals':'Career',c.c.map(([v,l])=>`<b>${v}</b> ${l}`).join(' · ')+(c.gp?` · ${c.gp} games`:'')])
+  if(c&&c.best) rows.push(['Best season',`<b>${c.best[1]}</b> ${c.best[2]} · ${c.best[0]}`])
+  if(c) rows.push(['Drafted', c.d ? `${c.d.y} · round ${c.d.r}, pick ${c.d.p}${c.d.t?' · '+c.d.t:''}`
+                                  : `Undrafted${c.debut?' · in the NFL since '+c.debut:''}`])
+  return `<div class="pcareer ${tier}${extra?' '+extra:''}"><div class="pc-top">${head}</div>
+    ${rows.map(([k,v])=>`<div class="pc-row"><span>${k}</span><em>${v}</em></div>`).join('')}</div>`
 }
 // The shirt number, as big as the card allows, behind the portrait -- outlined, so it
 // reads as the jersey without fighting the face in front of it.
@@ -432,8 +457,8 @@ function playerCard(p, gLabel, rank){
     <div class="pbody">
       <div class="pshot">${jerseyOf(p)?`<div class="pjersey" style="${ringsOf(p).length
           ? `color:rgba(233,196,106,.12);-webkit-text-stroke:2.5px ${GOLD}`   // a champion's number is gold
-          : `color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)`}">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
-      ${bioOf(p)}
+          : `color:rgba(${soft},.09);-webkit-text-stroke:2px rgba(${soft},.42)`}">${jerseyOf(p)}</div>`:''}<img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'">${careerBox(p)}</div>
+      ${bioOf(p)}${careerBox(p,'m')}
       <div class="pright">
         <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>{ const rk=rankIn(p,cat,key)
           return `

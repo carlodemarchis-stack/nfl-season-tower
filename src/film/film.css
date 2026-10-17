@@ -222,9 +222,9 @@
   .pbody{position:relative;z-index:1;flex:1;min-height:0;display:grid;
     grid-template-columns:minmax(200px,31%) minmax(0,1fr);gap:22px;
     padding:10px 32px 92px;align-items:stretch;}
-  .pshot{grid-column:1;grid-row:1;position:relative;height:100%;min-height:0;display:flex;align-items:flex-end;
-    justify-content:center;margin-bottom:-64px;}
-  .pshot img{max-height:100%;width:100%;max-width:420px;object-fit:contain;object-position:bottom;
+  .pshot{grid-column:1;grid-row:1;position:relative;height:100%;min-height:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-end;}
+  .pshot img{flex:0 1 auto;min-height:0;max-height:100%;width:100%;max-width:420px;object-fit:contain;object-position:bottom;
     filter:drop-shadow(0 14px 30px rgba(0,0,0,.45));}
   .pright{grid-column:2;grid-row:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;justify-content:center;}
   .pstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:0 0 auto;}
@@ -251,17 +251,28 @@
   .pbio-c.wide{grid-column:1/-1;}
   .pbio-c span{font-size:8.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.55;}
   .pbio-c b{font-size:16px;font-weight:900;letter-spacing:-.2px;white-space:nowrap;}
-  /* Super Bowl champions: a gold block in the bio, a gold number, a trophy by the name */
-  .prings{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:8px;padding:10px 14px 10px 10px;
-    border-radius:12px;background:linear-gradient(120deg,rgba(20,16,6,.55),rgba(20,16,6,.28));
-    border:1px solid rgba(233,196,106,.55);box-shadow:0 6px 20px rgba(0,0,0,.25);color:#F6E3A8;width:max-content;max-width:100%;}
-  .prings .lomb{width:22px;height:40px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));}
-  .prings-t{display:flex;flex-direction:column;gap:5px;min-width:0;}
-  .prings-t b{font-size:12px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#F6E3A8;}
+  /* the career box: the plinth the portrait stands on -- gold for a Super Bowl champion,
+     silver for a major award, plain for everyone else */
+  .pcareer{position:relative;z-index:2;width:100%;max-width:420px;flex:0 0 auto;display:flex;flex-direction:column;
+    gap:5px;padding:11px 14px 12px;border-radius:12px;background:linear-gradient(120deg,rgba(12,12,14,.62),rgba(12,12,14,.36));
+    border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 28px rgba(0,0,0,.3);color:#fff;}
+  .pcareer.gold{border-color:rgba(233,196,106,.6);color:#F6E3A8;background:linear-gradient(120deg,rgba(26,19,5,.7),rgba(26,19,5,.4));}
+  .pcareer.silver{border-color:rgba(214,220,228,.55);color:#E6EAF0;}
+  .pcareer.m{display:none;}
+  .pc-top{display:flex;align-items:center;gap:11px;margin-bottom:3px;}
+  .pcareer .lomb{width:20px;height:36px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));}
+  .pcareer.silver .lomb{color:#D6DCE4;}
+  .pc-hd{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .pc-hd b{font-size:12px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;}
+  .pc-aw{font-size:10px;font-weight:800;opacity:.8;}
   .prings-c{display:flex;gap:5px;flex-wrap:wrap;}
   .ring{font-size:10.5px;font-weight:900;letter-spacing:.6px;padding:2px 8px;border-radius:999px;
     background:linear-gradient(180deg,#F7DE95,#C99A3A);color:#2b1d05;}
-  .prings-m{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#E9C46A;}
+  .pc-row{display:flex;gap:10px;align-items:baseline;font-size:11.5px;line-height:1.3;}
+  .pc-row span{flex:0 0 80px;font-size:8.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.6;}
+  .pc-row em{font-style:normal;font-weight:600;min-width:0;}
+  .pc-row em b{font-weight:900;}
+  .pcareer.gold .pc-row:first-of-type em{color:#E9C46A;font-weight:800;}
   .tb-ring{display:inline-flex;align-items:center;gap:2px;font-size:13px;font-weight:900;color:#F6E3A8;
     padding:2px 9px 2px 6px;border-radius:999px;background:rgba(20,16,6,.45);border:1px solid rgba(233,196,106,.6);}
   .tb-ring .lomb{width:10px;height:18px;}
@@ -324,7 +335,7 @@
     .pcard .tb-rankbig b{font-size:30px;letter-spacing:-1.5px;}
     .pcard .tb-rankbig small{font-size:10px;}
     .pcard .tb-rec{font-size:12px;} .pcard .tb-rec .pf{font-size:8.5px;}
-    .pbody{grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;
+    .pbody{grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto;
       gap:10px 12px;padding:8px 16px 84px;}
     .pright{display:contents;}
     .pshot{grid-column:1;grid-row:1;margin-bottom:0;align-items:center;}
@@ -340,8 +351,8 @@
     .pbio{grid-column:1/-1;grid-row:4;grid-template-columns:repeat(5,auto);gap:4px 14px;padding:0;}
     .pbio-c.wide{grid-column:auto;} .pbio-c b{font-size:12px;} .pbio-c span{font-size:7px;}
     .pjersey{font-size:96px;top:46%;-webkit-text-stroke-width:1.4px;}
-    .prings{margin-top:4px;padding:6px 10px 6px 8px;gap:8px;} .prings .lomb{width:14px;height:26px;}
-    .prings-t b{font-size:9.5px;} .ring{font-size:8.5px;padding:1px 6px;} .prings-m{font-size:8px;}
+    .pshot .pcareer{display:none;} .pcareer.m{display:flex;grid-column:1/-1;grid-row:5;max-width:none;padding:8px 10px;}
+    .pc-row{font-size:10px;} .pc-row span{flex-basis:66px;font-size:7.5px;} .ring{font-size:8.5px;padding:1px 6px;}
     .pc-plot{max-height:none;gap:2px;} .pc-h i{max-width:14px;}
     .pc-wk{font-size:7px;} .pc-res{height:10px;margin-top:2px;font-size:6px;letter-spacing:-.3px;}
     .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;left:28px;}
