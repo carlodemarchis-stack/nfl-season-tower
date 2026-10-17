@@ -593,8 +593,8 @@ export class SeasonTower extends React.Component<Props, State> {
       chart, chartAccent: prim,
       abbr, name: t.name, prim, txt, rec: rec.str, div: `${t.conf} ${t.div === 'N' ? 'North' : t.div === 'S' ? 'South' : t.div === 'E' ? 'East' : t.div === 'W' ? 'West' : t.div}`,
       coach: (rost && rost.coach) || '—', count: (rost && rost.count) || 0,
-      // the film is built on 2026 only, so earlier seasons have no club card to open
-      filmUrl: this.season() === '2026' ? `./film.html#${abbr}` : null,
+      // the Clubs film is built on 2026 only, so earlier seasons have no club card to open
+      filmUrl: this.season() === '2026' ? `./clubs.html#${abbr}` : null,
       headStyle: `background:linear-gradient(135deg,${prim} 0%,${this.mix(prim, '#000000', .25)} 100%);color:${txt};`,
       badgeStyle: `background:${txt === '#ffffff' ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.08)'};color:${txt};`,
       hasRost: !!rost, unitChips, groups, total, played,
@@ -1073,8 +1073,8 @@ export class SeasonTower extends React.Component<Props, State> {
               <span>NFL</span>
               <button onClick={v.onToggleSeason} style={css(v.seasonBtnStyle)}><span>{v.seasonYr}</span><span style={css(v.seasonArrowStyle)}>▾</span></button>
               {v.hdr.count && <span style={{ marginLeft: v.isNarrow ? '4px' : '10px', fontSize: v.isNarrow ? '10px' : '12px', fontWeight: 700, color: '#9298a1', fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>{v.playedStr}</span>}
-              {/* The film's two halves, each its own entry: a card per team, and the player leaders. */}
-              {([['Teams', './film.html#teams', "A card for every team, in this page's League · Wins order"], ['Players', './film.html#players', 'The season leaders, position by position']] as [string, string, string][]).map(([label, href, title], i) => (
+              {/* The two card films: a card per club, and the season's leaders. */}
+              {([['Clubs', './clubs.html', "A card for every club, in this page's League · Wins order"], ['Players', './players.html', 'The season leaders, position by position']] as [string, string, string][]).map(([label, href, title], i) => (
                 <a key={label} href={href} title={title} style={{ marginLeft: i ? (v.isNarrow ? '3px' : '5px') : (v.isNarrow ? '4px' : '8px'), fontSize: v.isNarrow ? '10px' : '11px', fontWeight: 800, letterSpacing: '.3px', color: '#15181d', textDecoration: 'none', border: '1px solid #D7DAE0', background: '#fff', borderRadius: '999px', padding: v.isNarrow ? '3px 8px' : '4px 11px', whiteSpace: 'nowrap' }}>{label} ↗</a>
               ))}
               {v.seasonOpen && (
@@ -1391,7 +1391,7 @@ export class SeasonTower extends React.Component<Props, State> {
                         <span style={{ opacity: .5 }}>·</span>
                         <span>{v.tm.coach}</span>
                       </div>
-                      {v.tm.filmUrl && <a href={v.tm.filmUrl} style={{ display: 'inline-block', marginTop: '9px', fontSize: '11px', fontWeight: 800, letterSpacing: '.3px', color: 'inherit', textDecoration: 'none', borderRadius: '999px', padding: '4px 11px', ...css(v.tm.badgeStyle) }}>Team card ↗</a>}
+                      {v.tm.filmUrl && <a href={v.tm.filmUrl} style={{ display: 'inline-block', marginTop: '9px', fontSize: '11px', fontWeight: 800, letterSpacing: '.3px', color: 'inherit', textDecoration: 'none', borderRadius: '999px', padding: '4px 11px', ...css(v.tm.badgeStyle) }}>Club card ↗</a>}
                     </div>
                   </div>
                 </div>

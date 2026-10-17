@@ -10,8 +10,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // index.html = React Season Tower · film.html = vanilla-JS Season Film deck
+        // index.html = React Season Tower · players.html + clubs.html = the two vanilla-JS
+        // card films (one script, src/film/) · film.html = forwards the old address
         main: 'index.html',
+        players: 'players.html',
+        clubs: 'clubs.html',
         film: 'film.html',
       },
     },

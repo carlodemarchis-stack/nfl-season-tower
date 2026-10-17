@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NFL · 2026 Clubs</title>
+<meta name="description" content="One card per NFL club in the towers' order — every game as a tower, key players, full roster and season splits. Produced with passion by A guy with a scarf (Carlo De Marchis)." />
+<link rel="canonical" href="https://nfl.aguywithascarf.com/clubs.html" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="A guy with a scarf" />
+<meta property="og:title" content="NFL — 2026 Clubs" />
+<meta property="og:description" content="An interactive NFL card film: all 32 clubs, every game as a tower, key players, full rosters and season splits. Best in landscape on laptops &amp; iPads — also great on your phone." />
+<meta property="og:url" content="https://nfl.aguywithascarf.com/clubs.html" />
+<meta property="og:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NFL Clubs — one card per club" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="NFL — 2026 Clubs" />
+<meta name="twitter:description" content="An interactive NFL card film: all 32 clubs, every game as a tower, key players, full rosters and season splits. Best in landscape on laptops &amp; iPads — also great on your phone." />
+<meta name="twitter:image" content="https://nfl.aguywithascarf.com/og-film.png?v=1" />
+<!-- Umami --><script>try{/[?&#]noumami\b/.test(location.href)&&localStorage.setItem('umami.disabled','1')}catch(e){}</script><script defer src="https://m.aguywithascarf.com/k.js" data-website-id="35fa818c-5cc5-4c16-b5d7-d7cc554f06ed"></script><!-- End Umami -->
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "e9ec6c0b0728499a87d424cd22d7c5cf"}'></script><!-- End Cloudflare Web Analytics -->
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./src/film/film.css" />
+</head>
+<body data-film="clubs">
+  <div class="sectabs" id="sectabs"></div>
+  <div class="stage"><div class="track" id="track"></div></div>
+  <!-- Control bar: same template and feature set as the PGA / NBA films.
+       The match-week selector is this film's own -- the others pick a season here. -->
+  <div id="bar">
+    <button id="b-first" title="Restart (Home)"><svg viewBox="0 0 24 24"><path d="M19 5v14L8 12z"/><path d="M5 5v14"/></svg></button>
+    <button id="b-prev" title="Previous (←)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button id="b-play" title="Play / pause (space)"><svg viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></svg></button>
+    <button id="count" title="Jump to a card (g)"><span class="dot" id="pdot"></span><span class="crumb"><b>1</b> / 204</span><span class="nm" id="pname">—</span></button>
+    <button id="b-next" title="Next (→)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <select id="wk" title="Match week — weeks after this are shown as still to play"></select>
+    <button id="b-more" title="More sports experiences"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button id="b-help" title="Help (h)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.3a2.9 2.9 0 015.6 1c0 1.9-2.8 2.3-2.8 4"/><path d="M12 17.4h.01"/></svg></button>
+    <button id="b-full" title="Fullscreen (f)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5"/></svg></button>
+  </div>
+
+  <div class="modal" id="jmodal"><div class="mbox">
+    <button class="mclose" onclick="closeModal('jmodal')">&times;</button>
+    <h3>Jump to a card</h3>
+    <input id="jq" type="text" autocomplete="off" placeholder="Type a club, a conference or division — or a card number…">
+    <div id="jlist"></div></div></div>
+
+  <div class="modal" id="hmodal"><div class="mbox">
+    <button class="mclose" onclick="closeModal('hmodal')">&times;</button><div id="hbody"></div></div></div>
+
+  <div class="modal" id="mmodal"><div class="mbox">
+    <button class="mclose" onclick="closeModal('mmodal')">&times;</button>
+    <h3>More sports experiences</h3>
+    <div class="applist">
+      <a href="https://f1.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#00d7b6"></i>
+        <div><b>Formula 1</b><em>A season read lap by lap</em></div><span>&#8599;</span></a>
+      <a href="https://tennis.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#f2c14e"></i>
+        <div><b>Tennis</b><em>The season, one player at a time</em></div><span>&#8599;</span></a>
+      <a href="https://top5.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#2f9e58"></i>
+        <div><b>Football</b><em>Season towers, top 5 leagues</em></div><span>&#8599;</span></a>
+      <a href="https://nba.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#e0453f"></i>
+        <div><b>NBA</b><em>Season film and towers</em></div><span>&#8599;</span></a>
+      <a href="https://nhl.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#2a9fd8"></i>
+        <div><b>NHL</b><em>Season film and towers</em></div><span>&#8599;</span></a>
+      <a href="https://worldcupbracket.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#3fbe72"></i>
+        <div><b>World Cup</b><em>Road to the Final</em></div><span>&#8599;</span></a>
+      <a href="https://golf.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#57a34a"></i>
+        <div><b>PGA TOUR</b><em>Season Film</em></div><span>&#8599;</span></a>
+      <a href="https://athletics.aguywithascarf.com/" target="_blank" rel="noopener"><i style="background:#d98a3d"></i>
+        <div><b>Athletics</b><em>World Record Film</em></div><span>&#8599;</span></a>
+    </div>
+    <div class="allapps"><a href="https://dataviz.aguywithascarf.com/" target="_blank" rel="noopener">See them all &rarr;</a></div>
+  </div></div>
+
+  <div class="modal" id="cmodal"><div class="mbox">
+    <button class="mclose" onclick="closeModal('cmodal')">&times;</button><div id="cbody"></div></div></div>
+
+<script type="module" src="./src/film/film.js"></script>
+</body>
+</html>
