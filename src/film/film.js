@@ -274,6 +274,49 @@ const STATSET={
 const gkeyOf=p=> p.pos==='P' ? 'p' : (p.pos==='PK'||p.pos==='K') ? 'pk'
   : (PLAYERS.groups.find(g=>g.ids.includes(p.id))||{}).key || 'qb'
 const setFor=p=> STATSET[gkeyOf(p)] || STATSET.qb
+/* The other side of each player's game: a short second row of numbers the six boxes leave
+   out -- a quarterback's legs, a running back's hands, a receiver's workload. */
+const MORESET={
+  qb:['On the run',[['Rush yds','rushing','rushingYards',0],['Rush TD','rushing','rushingTouchdowns',0],
+      ['Yds/carry','rushing','yardsPerRushAttempt',1],['Sacked','passing','sacks',0],['Longest pass','passing','longPassing',0]]],
+  rb:['As a receiver',[['Catches','receiving','receptions',0],['Targets','receiving','receivingTargets',0],
+      ['Rec TD','receiving','receivingTouchdowns',0],['Rush 1st downs','rushing','rushingFirstDowns',0],['Fumbles lost','rushing','rushingFumblesLost',0]]],
+  wr:['Workload',[['Targets','receiving','receivingTargets',0],['1st downs','receiving','receivingFirstDowns',0],
+      ['Yds/game','receiving','receivingYardsPerGame',1],['Big plays','receiving','receivingBigPlays',0],['Fumbles lost','receiving','receivingFumblesLost',0]]],
+  dl:['Also',[['Assisted','defensive','assistTackles',0],['Sack yds','defensive','sackYards',0],
+      ['Fum recovered','general','fumblesRecovered',0],['Int','defensiveinterceptions','interceptions',0]]],
+  lb:['Also',[['Assisted','defensive','assistTackles',0],['Forced fum','general','fumblesForced',0],
+      ['Fum recovered','general','fumblesRecovered',0],['Int yards','defensiveinterceptions','interceptionYards',0]]],
+  db:['Also',[['Assisted','defensive','assistTackles',0],['Tackles for loss','defensive','tacklesForLoss',0],
+      ['Sacks','defensive','sacks',1],['Fum recovered','general','fumblesRecovered',0],['Pick-sixes','defensiveinterceptions','interceptionTouchdowns',0]]],
+  pk:['Scoring',[['Points','scoring','totalPoints',0],['Pts/game','scoring','totalPointsPerGame',1],
+      ['From 40-49','kicking','fieldGoalsMade40_49',0],['XP %','kicking','extraPointPct',1]]],
+  p:['Also',[['Punt yds','punting','puntYards',0],['Fair catches','punting','fairCatches',0],
+      ['Returned','punting','puntReturns',0],['Blocked','punting','puntsBlocked',0]]],
+}
+/* Where a number sits among the player's own group: 3rd of 24 quarterbacks. Lower is
+   better only for the mistakes. */
+const LOWER=new Set(['passing.interceptions','passing.sacks','rushing.rushingFumblesLost','receiving.receivingFumblesLost'])
+const GROUPNOUN={qb:'QBs',rb:'RBs',wr:'receivers',dl:'pass rushers',lb:'linebackers',db:'DBs',pk:'kickers',p:'punters'}
+const ordinal=n=>n+(['th','st','nd','rd'][((n%100)-20)%10]||['th','st','nd','rd'][n%100]||'th')
+function rankIn(p,cat,key){
+  const g=gkeyOf(p), v=statVal(p,cat,key); if(v==null) return null
+  const pool=Object.values(PLAYERS.players).filter(q=>gkeyOf(q)===g&&statVal(q,cat,key)!=null)
+  const low=LOWER.has(cat+'.'+key)
+  const r=1+pool.filter(q=>low?statVal(q,cat,key)<v:statVal(q,cat,key)>v).length
+  return `${ordinal(r)}${low?' fewest':''} of ${pool.length}`
+}
+/* Bio from the club roster: number, age, size, college, years in the league. */
+const BIO={}
+for(const ab in ROSTERS) for(const r of ROSTERS[ab].players) BIO[r.id]=r
+function bioOf(p){
+  const b=BIO[p.id]; if(!b) return ''
+  const exp=b.exp===0?'Rookie':b.exp?`${b.exp} yrs in the NFL`:null
+  const rows=[b.age?['Age',b.age]:null, b.ht?['Height',b.ht.replace("' ",'′').replace('"','″')]:null,
+    b.wt?['Weight',b.wt]:null, b.col?['College',b.col]:null, exp?['Experience',exp]:null].filter(Boolean)
+  return `<div class="pbio">${b.j?`<div class="pbio-no">#${b.j}</div>`:''}
+    ${rows.map(([k,v])=>`<div class="pbio-r"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
+}
 const statVal=(p,cat,key)=>{ const v=(p.st[cat]||{})[key]; return (v==null)?null:v }
 const fmtStat=(v,dp)=> v==null ? '—'
   : (dp?Number(v).toFixed(dp):Math.round(v).toLocaleString('en-US'))
@@ -366,9 +409,14 @@ function playerCard(p, gLabel, rank){
     </div>
     <div class="pbody">
       <div class="pshot"><img src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="${p.n}" onerror="this.style.display='none'"></div>
+      ${bioOf(p)}
       <div class="pright">
-        <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>`
-          <div class="pst"><b>${fmtStat(statVal(p,cat,key),dp)}</b><span>${lab}</span></div>`).join('')}</div>
+        <div class="pstats">${setFor(p).map(([lab,cat,key,dp])=>{ const rk=rankIn(p,cat,key)
+          return `
+          <div class="pst"><b>${fmtStat(statVal(p,cat,key),dp)}</b><span>${lab}</span>${rk?`<em title="Rank among the ${GROUPNOUN[gkeyOf(p)]||'players'} in this film">${rk} ${GROUPNOUN[gkeyOf(p)]||''}</em>`:''}</div>` }).join('')}</div>
+        ${(()=>{ const m=MORESET[gkeyOf(p)]; if(!m) return ''
+          return `<div class="pmore"><span class="pmore-t">${m[0]}</span>${m[1].map(([lab,cat,key,dp])=>
+            `<span class="pm"><b>${fmtStat(statVal(p,cat,key),dp)}</b>${lab}</span>`).join('')}</div>` })()}
         ${playerChart(p,I,soft)}
       </div>
     </div>`

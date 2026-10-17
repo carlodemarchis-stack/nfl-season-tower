@@ -222,11 +222,11 @@
   .pbody{position:relative;z-index:1;flex:1;min-height:0;display:grid;
     grid-template-columns:minmax(200px,31%) minmax(0,1fr);gap:22px;
     padding:10px 32px 92px;align-items:stretch;}
-  .pshot{position:relative;height:100%;min-height:0;display:flex;align-items:flex-end;
+  .pshot{grid-column:1;grid-row:1;position:relative;height:100%;min-height:0;display:flex;align-items:flex-end;
     justify-content:center;margin-bottom:-64px;}
   .pshot img{max-height:100%;width:100%;max-width:420px;object-fit:contain;object-position:bottom;
     filter:drop-shadow(0 14px 30px rgba(0,0,0,.45));}
-  .pright{min-width:0;min-height:0;display:flex;flex-direction:column;gap:16px;justify-content:center;}
+  .pright{grid-column:2;grid-row:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;justify-content:center;}
   .pstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:0 0 auto;}
   .pst{background:rgba(0,0,0,.17);border:1px solid rgba(128,128,128,.22);border-radius:14px;
     padding:11px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;}
@@ -234,6 +234,23 @@
     font-variant-numeric:tabular-nums;}
   .pst span{font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
     opacity:.62;}
+  /* where the number ranks within the player's own group */
+  .pst em{font-style:normal;font-size:10px;font-weight:700;opacity:.8;margin-top:1px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  /* the other side of his game, one compact row */
+  .pmore{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 18px;flex:0 0 auto;
+    padding:8px 14px;border-radius:12px;background:rgba(0,0,0,.12);border:1px solid rgba(128,128,128,.18);
+    font-size:9.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;}
+  .pmore-t{opacity:.55;margin-right:2px;}
+  .pm{white-space:nowrap;opacity:.8;} .pm b{font-size:17px;font-weight:900;letter-spacing:-.4px;
+    margin-right:5px;font-variant-numeric:tabular-nums;text-transform:none;opacity:1;}
+  /* bio: shares the portrait's column, above the cut-out */
+  .pbio{grid-column:1;grid-row:1;align-self:start;position:relative;z-index:2;display:flex;
+    flex-direction:column;gap:5px;padding-top:6px;max-width:300px;}
+  .pbio-no{font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1;opacity:.9;margin-bottom:4px;}
+  .pbio-r{display:flex;gap:10px;align-items:baseline;font-size:12.5px;}
+  .pbio-r span{flex:0 0 78px;font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.55;}
+  .pbio-r b{font-weight:800;}
   /* the season, game by game: every bar rises, and the result sits on the axis */
   .pchart{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px;}
   .pc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
@@ -288,7 +305,7 @@
     .pcard .tb-rankbig b{font-size:30px;letter-spacing:-1.5px;}
     .pcard .tb-rankbig small{font-size:10px;}
     .pcard .tb-rec{font-size:12px;} .pcard .tb-rec .pf{font-size:8.5px;}
-    .pbody{grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);
+    .pbody{grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;
       gap:10px 12px;padding:8px 16px 84px;}
     .pright{display:contents;}
     .pshot{grid-column:1;grid-row:1;margin-bottom:0;align-items:center;}
@@ -297,7 +314,13 @@
     .pst{padding:7px 9px;border-radius:10px;gap:2px;}
     .pst b{font-size:17px;letter-spacing:-.5px;}
     .pst span{font-size:7.5px;letter-spacing:.4px;}
-    .pchart{grid-column:1/-1;grid-row:2;}
+    .pchart{grid-column:1/-1;grid-row:3;}
+    .pmore{grid-column:1/-1;grid-row:2;padding:6px 10px;gap:4px 12px;font-size:8px;}
+    .pm b{font-size:14px;} .pst em{font-size:8.5px;}
+    /* the bio becomes one wrapped line under the chart */
+    .pbio{grid-column:1/-1;grid-row:4;flex-direction:row;flex-wrap:wrap;gap:3px 14px;padding:0;max-width:none;}
+    .pbio-no{font-size:13px;letter-spacing:0;margin:0;} .pbio-r{font-size:11px;gap:5px;}
+    .pbio-r span{flex:0 0 auto;font-size:7.5px;}
     .pc-plot{max-height:none;gap:2px;} .pc-h i{max-width:14px;}
     .pc-wk{font-size:7px;} .pc-res{height:10px;margin-top:2px;font-size:6px;letter-spacing:-.3px;}
     .pc-wk{height:11px;line-height:11px;} .pc-rule{bottom:22px;left:28px;}
