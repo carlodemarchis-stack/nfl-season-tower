@@ -720,6 +720,10 @@ export class SeasonTower extends React.Component<Props, State> {
     const FT: Dict = (S.FPI26 && S.FPI26.teams) || {}
     const fv = Object.values(FT).map((x: any) => x.fpi)
     const fMin = fv.length ? Math.min(...fv) : -8, fMax = fv.length ? Math.max(...fv) : 8
+    // The latest week with any result (respects the replay slider): once its first game is
+    // in, every earlier bye week is over for the whole league and its BYE box goes.
+    let lastStarted = 0
+    for (const t of Object.values(T) as any[]) for (const g of t.games) if (g.w > lastStarted && this.getRes(t.abbr, g.w)) lastStarted = g.w
     const list = Object.values(T).map((t: any) => {
       const wins: any[] = [], losses: any[] = [], ties: any[] = [], pend: any[] = []
       for (const g of t.games) {
@@ -735,7 +739,7 @@ export class SeasonTower extends React.Component<Props, State> {
         if (byeW) {
           const next = t.games.filter((g: any) => g.w > byeW!).sort((a: any, b: any) => a.w - b.w)[0]
           const nextIn = next && this.getRes(t.abbr, next.w)
-          if (!nextIn) bye = { w: byeW, opp: 'BYE', oppFull: 'Bye week', ha: '' }
+          if (!nextIn && byeW >= lastStarted) bye = { w: byeW, opp: 'BYE', oppFull: 'Bye week', ha: '' }
         }
       }
       const sos = SOS && SOS[t.abbr]
