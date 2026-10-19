@@ -792,6 +792,7 @@ export class SeasonTower extends React.Component<Props, State> {
     const belowPxFit = Math.min(belowPx, Math.round(maxBelow * (cellH + 1) + 3))
     // On narrow screens don't squeeze 32 columns into the viewport — hold a readable
     // width and let the chart scroll horizontally instead.
+    // the columns then grow (flex 1 0) to fill whatever width is left, so no empty strip on the right
     const colW = Math.max(isNarrow ? 44 : 24, Math.min(56, (chartW - 6 * 32) / 32))
     const rowH = Math.max(28, Math.min(40, (chartH - 4) / 32))
     const grouped = (groupBy === 'conf' || groupBy === 'div')
@@ -904,7 +905,7 @@ export class SeasonTower extends React.Component<Props, State> {
       const recordStr = e.Ti ? `${e.W}-${e.L}-${e.Ti}` : `${e.W}-${e.L}`
       let colStyle: string, z1Style: string, z2Style: string, divStyle: string, labelStyle: string, rankStyle: string, abbrStyle: string, recStyle: string
       if (orient === 'v') {
-        colStyle = `flex:0 0 ${colW}px;height:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;${isGroupStart ? 'margin-left:16px;' : ''}`
+        colStyle = `flex:1 0 ${colW}px;height:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;${isGroupStart ? 'margin-left:16px;' : ''}`
         z1Style = `order:0;flex:0 0 ${abovePxFit}px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding-bottom:2px;`
         labelStyle = `order:1;flex:0 0 ${labelH}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#fff;border:1px solid #E4E7EB;border-top:3px solid ${prim};border-bottom:3px solid ${prim};border-radius:4px;box-shadow:0 1px 2px rgba(20,22,28,.05);cursor:pointer;`
         divStyle = `order:2;height:0;`
