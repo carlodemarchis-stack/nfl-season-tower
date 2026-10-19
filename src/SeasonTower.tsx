@@ -1181,21 +1181,21 @@ export class SeasonTower extends React.Component<Props, State> {
         </div>
 
         {v.weekCard && (
-          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 14px', padding: '6px 18px', borderBottom: '1px solid #EDEFF2', background: '#FBFBFC', fontSize: '11.5px', color: '#727781', fontWeight: 600 }}>
+          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap', gap: '12px', padding: '6px 18px', borderBottom: '1px solid #EDEFF2', background: '#FBFBFC', fontSize: '11.5px', color: '#727781', fontWeight: 600 }}>{/* one line: the week is in the header's slider */}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Week {v.weekCard.w} · expected vs result</span>
+              <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#9298a1' }}>Expected vs result</span>
               <button onClick={v.onPickHelp} title="What is this?" aria-label="What is expected vs result?" style={{ width: '16px', height: '16px', borderRadius: '50%', border: '1px solid #C9CDD3', background: '#fff', color: '#727781', fontSize: '10px', fontWeight: 800, lineHeight: 1, padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
             </span>
             {v.weekCard.n === 0
               ? <span>Expectations frozen {v.weekCard.when}, before kickoff — results fill in as games finish</span>
               : <>
                   <span><b style={{ color: '#15181d' }}>{v.weekCard.n}</b> of {v.weekCard.total} played</span>
-                  <span>Favourite won: {[
+                  <span title="Normally the favourite wins about 2 games in 3">Favourite won: {[
                     v.weekCard.espnOf ? ['ESPN at kickoff', v.weekCard.espn, v.weekCard.espnOf] : null,
                     v.weekCard.lineOf ? ['closing line', v.weekCard.line, v.weekCard.lineOf] : null,
                     v.weekCard.fpiOf ? ['FPI (Wed)', v.weekCard.fpi, v.weekCard.fpiOf] : null,
                   ].filter(Boolean).map((x: any, i: number) => <span key={i}>{i ? ' · ' : ''}{x[0]} <b style={{ color: '#15181d' }}>{share(x[1], x[2])}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{x[1]}/{x[2]}</span></span>)}
-                    <span style={{ color: '#a0a5ad', fontWeight: 500 }}> · normal ≈ 2 in 3</span></span>
+                  </span>
                   {v.weekCard.upset && <span>Biggest upset: <b style={{ color: '#C23A2E' }}>{v.weekCard.upset}</b></span>}
                   {v.seasonCard && v.seasonCard.weeks > 1 && <span style={{ marginLeft: 'auto' }}>Season, {v.seasonCard.weeks} weeks: ESPN <b style={{ color: '#15181d' }}>{share(v.seasonCard.espn, v.seasonCard.espnOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.espn}/{v.seasonCard.espnOf}</span> · line <b style={{ color: '#15181d' }}>{share(v.seasonCard.line, v.seasonCard.lineOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.line}/{v.seasonCard.lineOf}</span>{v.seasonCard.fpiOf ? <> · FPI (Wed) <b style={{ color: '#15181d' }}>{share(v.seasonCard.fpi, v.seasonCard.fpiOf)}</b> <span style={{ fontSize: '10px', color: '#a0a5ad' }}>{v.seasonCard.fpi}/{v.seasonCard.fpiOf}</span></> : null}</span>}
                 </>}
