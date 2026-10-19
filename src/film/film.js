@@ -439,7 +439,8 @@ function playerChart(p,I,soft){
 function playerCard(p, gLabel, rank){
   const t=TEAMS[p.team]||{}, prim=t.primary||'#3a3f47', I=ink(prim)
   const soft=(I==='#ffffff'?'255,255,255':'0,0,0')
-  const games=statVal(p,'general','gamesPlayed')
+  // ESPN's season totals lag its game logs by hours after a slate: count the log too
+  const games=Math.max(statVal(p,'general','gamesPlayed')||0,(p.g||[]).filter(g=>!g.p).length)||null
   const card=el('div','card pcard')
   card.style.setProperty('--cardbg',prim)
   card.style.background=`linear-gradient(150deg, ${mix(prim,'#ffffff',0.20)} 0%, ${prim} 47%, ${mix(prim,'#000000',0.20)} 100%)`

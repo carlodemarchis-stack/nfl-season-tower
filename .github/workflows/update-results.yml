@@ -44,8 +44,10 @@ jobs:
           python3 tools/update_results.py
           # New finals -> refresh the film's player leaders (with game logs) and rosters, so
           # its cards move with the results. Only then: rosters change daily, and refreshing
-          # them on every run would commit and redeploy for nothing.
-          if [ -n "$(git status --porcelain -- src/data/results-2026.js)" ]; then
+          # them on every run would commit and redeploy for nothing. Plus the daily midday
+          # run: ESPN adds a game to the logs at once but its season totals (games, yards,
+          # TDs) only hours later, so a Sunday-night refresh catches them stale.
+          if [ -n "$(git status --porcelain -- src/data/results-2026.js)" ] || [ "${{ github.event.schedule }}" = "17 12 * * *" ]; then
             python3 tools/fetch_players.py 2026 || echo "Player pull failed — keeping the previous leaders"
             python3 tools/fetch_rosters.py 2026 || echo "Roster pull failed — keeping the previous rosters"
             python3 tools/fetch_keyplayers.py 2026 || echo "Key-player pull failed — keeping the previous lineups"
