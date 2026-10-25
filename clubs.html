@@ -2,6 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<!-- Stale-page guard. Every results update rebuilds the site under new script names and
+     the old ones are gone, but a tab left idle (or a page from the 10-minute cache) still
+     asks for them -- and stays blank. If one of our own scripts fails to load, fetch a
+     fresh page once (a new URL skips the cache); the flag stops it ever looping. -->
+<script>
+(function(){
+  var failed=false, K='agwasFresh';
+  addEventListener('error',function(e){
+    var t=e.target; if(!t||t.tagName!=='SCRIPT'||!/\/assets\//.test(t.src||''))return;
+    failed=true;
+    try{ if(sessionStorage.getItem(K))return; sessionStorage.setItem(K,'1') }catch(_){ return }
+    var u=new URL(location.href); u.searchParams.set('fresh',Date.now()); location.replace(u.toString());
+  },true);
+  addEventListener('load',function(){ setTimeout(function(){
+    if(failed)return;
+    try{ sessionStorage.removeItem(K) }catch(_){}
+    var u=new URL(location.href);
+    if(u.searchParams.has('fresh')){ u.searchParams.delete('fresh'); history.replaceState(history.state,'',u.toString()) }
+  },3000) });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NFL · 2026 Clubs</title>
 <meta name="description" content="One card per NFL club in the towers' order — every game as a tower, key players, full roster and season splits. Produced with passion by A guy with a scarf (Carlo De Marchis)." />
