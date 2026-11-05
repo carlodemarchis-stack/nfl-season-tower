@@ -1619,7 +1619,7 @@ export class SeasonTower extends React.Component<Props, State> {
 
         {/* ---------- footer ---------- */}
         <div style={{ flex: '0 0 auto', padding: '8px 18px 10px', borderTop: '1px solid #E8EAED', fontSize: '11px', color: '#9298a1', textAlign: 'center' }}>
-          Produced with passion by <a href="https://aguywithascarf.substack.com/" target="_blank" rel="noopener" style={{ color: '#727781', fontWeight: 700, textDecoration: 'none' }}>A guy with a scarf</a> (Carlo De Marchis).{' '}<a className="agwas-ver bare" data-agwas-ver="nfl" href="https://dataviz.aguywithascarf.com/releases/#nfl" target="_blank" rel="noopener"></a>
+          Produced with passion by <a href="https://aguywithascarf.com/" style={{ color: '#727781', fontWeight: 700, textDecoration: 'none' }}>A guy with a scarf</a> (Carlo De Marchis).{' '}<a className="agwas-ver bare" data-agwas-ver="nfl" href="https://dataviz.aguywithascarf.com/releases/#nfl" target="_blank" rel="noopener"></a>
         </div>
       </div>
     )

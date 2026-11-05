@@ -543,7 +543,7 @@ function buildTabs(){
     bar.appendChild(b)
   })
   const cred=el('div','tb-cred')
-  cred.innerHTML='Produced with passion by A guy with a scarf (Carlo De Marchis) \u00b7 '
+  cred.innerHTML='Produced with passion by <a href="https://aguywithascarf.com/">A guy with a scarf</a> (Carlo De Marchis) \u00b7 '
     +'<a href="#" onclick="openCredits();return false">Credits</a>'
   bar.appendChild(cred)
 }
@@ -651,8 +651,7 @@ function openHelp(){
 window.openCredits=function(){
   $('cbody').innerHTML=`
     <h3>Credits</h3>
-    <p>Produced with passion by <a href="https://aguywithascarf.substack.com/" target="_blank"
-      rel="noopener">A guy with a scarf</a> (Carlo De Marchis).</p>
+    <p>Produced with passion by <a href="https://aguywithascarf.com/">A guy with a scarf</a> (Carlo De Marchis).</p>
     <h5>Data</h5>
     <p>Schedules, results, rosters, season leaders and per-game logs from ESPN's public
       endpoints; logos and headshots from ESPN's CDN. Nothing here is affiliated with or
